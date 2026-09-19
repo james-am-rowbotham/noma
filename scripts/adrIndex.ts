@@ -59,7 +59,7 @@ export async function loadAdrs(): Promise<{ files: string[]; adrs: Adr[] }> {
     const fm = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
     adrs.push({
       file: f,
-      dir: f.split('/')[0],
+      dir: f.split('/')[0] ?? '',
       id: field(fm, 'id'),
       title: field(fm, 'title'),
       type: field(fm, 'type'),

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "types": ["bun"],
+
+    "strict": true,
+    // Beyond `strict`. Each of these catches a class of mistake that matters for scientific data:
+    "noUncheckedIndexedAccess": true,     // arr[0] is T | undefined — an empty catalogue response
+    "exactOptionalPropertyTypes": true,   // `uncertainty?: number` cannot be set to undefined
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,   // a missing break in a provenance switch
+    "noPropertyAccessFromIndexSignature": true,
+
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src", "scripts"]
+}

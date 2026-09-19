@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
-import { DIR, ROOT, STATUSES, TYPES, loadAdrs, renderIndex, spliceIndex } from './adrIndex';
+import { DIR, loadAdrs, renderIndex, ROOT, spliceIndex, STATUSES, TYPES } from './adrIndex';
 
 // ADR INTEGRITY — the measurement half of the decision records. Ported from repcheck, where it was
 // written after a real collision: two sessions each wrote an ADR-0028 and an ADR-0029 three minutes
@@ -37,9 +37,10 @@ describe('ADR integrity', () => {
   });
 
   it('gives each type its own id scheme', () => {
-    const wrong = adrs.filter(
-      (a) => a.type in TYPES && !new RegExp(`^${TYPES[a.type].prefix}\\d{4}$`).test(a.id),
-    );
+    const wrong = adrs.filter((a) => {
+      const type = TYPES[a.type];
+      return type && !new RegExp(`^${type.prefix}\\d{4}$`).test(a.id);
+    });
     expect(wrong.map((a) => `${a.file}: ${a.id}`)).toEqual([]);
   });
 
@@ -56,8 +57,10 @@ describe('ADR integrity', () => {
     const dangling: string[] = [];
     for (const a of adrs)
       for (const m of a.body.matchAll(/\]\(((?:\.\.\/[a-z]+\/)?(?:[A-Z]+-)?\d{4}-[a-z0-9-]+\.md)\)/g)) {
-        const rel = m[1].startsWith('../') ? m[1].slice(3) : `${a.dir}/${m[1]}`;
-        if (!known.has(rel)) dangling.push(`${a.file} -> ${m[1]}`);
+        const target = m[1];
+        if (!target) continue;
+        const rel = target.startsWith('../') ? target.slice(3) : `${a.dir}/${target}`;
+        if (!known.has(rel)) dangling.push(`${a.file} -> ${target}`);
       }
     expect(dangling).toEqual([]);
   });
