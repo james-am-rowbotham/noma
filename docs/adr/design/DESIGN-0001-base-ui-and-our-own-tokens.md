@@ -42,8 +42,7 @@ and the tokens themselves.
 
 ## Alternatives considered
 
-**Radix Primitives.** The known quantity — tellus uses it (tellus ADR-0012) — and still publishing,
-so not rejected on maintenance. Rejected because it ships **no combobox, no autocomplete and no
+**Radix Primitives.** The established option, and still publishing, so not rejected on maintenance. Rejected because it ships **no combobox, no autocomplete and no
 drawer** (see Evidence). The ask bar is Noma's central control; on Radix it would need a second
 library beside it (cmdk, downshift), which is the exact thing CLAUDE.md forbids. Base UI is from
 people who built Radix and covers the gap in one package.

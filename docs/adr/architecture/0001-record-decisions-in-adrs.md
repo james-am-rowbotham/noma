@@ -11,35 +11,28 @@ pinned-by: scripts/adrIntegrity.test.ts
 
 ## Context
 
-This layer exists before Noma's first line of application code, because the two projects before it
-each paid for getting it wrong in a different way.
+**Noma's product promise is that it never presents a scientific claim without saying where it came
+from.** Which earthquake catalogue is authoritative for a volcano, which magnitude scale a
+threshold actually means, which model version produced a plume, which licence governs a dataset —
+these are not implementation details that happen to need documenting. They are the product. A
+system whose pitch is *here is where this came from* cannot be unable to say where its own
+decisions came from.
 
-**repcheck got the layer late.** Its ADR-0001 is dated 2026-08-28; the earliest decision in its own
-timeline is 2026-07-12. Forty-seven days of decisions were reconstructed afterwards from code and
-memory.
-By then the working file had absorbed them — the measurements in the Evidence section below are
-what that cost. Worse, the same argument was being written twice at full length, once in a code
-comment and once in the project file, with nothing keeping the two copies in step and no way to
-tell which was current.
+Three such decisions arrived on day one, before any application code existed: which component
+library and what it costs; whether to build or run standards-compliant servers for four different
+scientific interfaces; and whether an earthquake belongs to a volcano. Each had alternatives that
+lost for concrete reasons, and none of those reasons is recoverable from the code that results.
+Left unwritten, each would be rediscovered as an argument in six months.
 
-**tellus got the records but not the enforcement.** It has `docs/adr/`, two sequences and a
-routing test in its project file. No test was found that reads any of it. Nothing fails when a
-record is wrong, so nothing stops it going wrong.
+This layer is built before the first line of application code rather than once the shape is clear,
+because **the earliest decisions are the ones most worth recording**: they constrain everything
+after them, and they are the least visible in the finished code.
 
-**And numbering by guesswork collided.** In repcheck two sessions each wrote an ADR-0028 and an
-ADR-0029 three minutes apart. It was found by hand, which is the wrong way to find it.
-
-Noma has a reason of its own, beyond inheriting those lessons. **The product promise is that Noma
-never presents a scientific claim without saying where it came from.** Which earthquake catalogue
-is authoritative, which magnitude scale a threshold means, which model version produced a plume,
-which licence governs a dataset — these are not implementation details that happen to need
-documenting. They are the product. A system whose entire pitch is *here is where this came from*
-cannot be unable to say where its own decisions came from.
-
-Three such decisions arrived on day one, before any code: which component library and what it
-costs; whether to build or run four standards-compliant servers; and whether an earthquake belongs
-to a volcano. Each had alternatives that lost for concrete reasons, and none of those reasons is
-recoverable from the code that results.
+Writing it down is not sufficient on its own. Documentation rots precisely because nothing breaks
+when it is wrong — a stale record is indistinguishable from a current one until someone acts on it.
+The three failure modes this layer has to survive are the same argument written in two places and
+drifting apart, two numbers issued for the same record, and a pointer to reasoning that has moved.
+All three are structural, which means a test can catch them.
 
 ## Decision
 
@@ -64,9 +57,8 @@ well-commented file, the comment is the right home and a record is clutter. A st
 `ADR-NNNN`, `design/` gives `DESIGN-NNNN`. Two sessions working on different concerns cannot
 collide on a number. A bare `0007` is ambiguous and is never written.
 
-**`## Alternatives considered` is required.** A record without it restates the code. An audit of
-repcheck's first 27 records found this missing in 6, and its absence is most of why the rest read
-as clutter.
+**`## Alternatives considered` is required.** A record without it restates the code: it says what
+was built, which the code already says, and omits the only thing the code cannot say.
 
 **`## Evidence` is required if any number was tuned or measured, and measurements are carried over
 verbatim.** Tables, timings, query plans, registry output, model runs with their parameters. A
@@ -74,15 +66,19 @@ record that summarises its own measurements has kept the word count and thrown a
 were for. For a scientific choice, `## References` carries the papers and provider documentation it
 rests on.
 
-**Immutability starts when a record lands on `main`, not when the file is written.** A draft —
-especially one written retroactively, where the consequences are still being discovered — is edited
-freely until then. After that a record is immutable **with exactly one exception: a forward pointer
-may be added** (`status`, `superseded-by`, `amended-by`, and a one-line note saying which part moved
-and where). Without that exception a reader who lands on a stale record has no signal to keep going.
+**Immutability starts when a record becomes visible to someone else** — pushed to a shared remote,
+or sent to another person. Until then, including after it is committed locally, it is a draft and
+is edited freely. The rule exists so that a reader who relied on reasoning does not find it changed
+underneath them; where there is no such reader, it does not apply.
 
-A reversal is a **new** record with `supersedes:`; the old one stays. A change that leaves the old
-reasoning intact uses `amends:`. A factual error — something that was never true — is corrected in
-place with a dated note.
+After that a record is immutable **with exactly one exception: a forward pointer may be added**
+(`status`, `superseded-by`, `amended-by`, and a one-line note saying which part moved and where).
+Without that exception a reader who lands on a stale record has no signal to keep going.
+
+A reversal is a **new** record with `supersedes:`; the old one stays, because the reasoning of a
+reversal is only legible next to what it reversed. A change that leaves the old reasoning intact
+uses `amends:`. A factual error — something that was never true — is corrected in place with a
+dated note.
 
 **The index is generated, not maintained.** `bun run adr:index` rewrites the tables and timeline in
 `docs/adr/README.md` from the records' own frontmatter.
@@ -94,53 +90,40 @@ present in every accepted record, and the index matching disk.
 
 ## Alternatives considered
 
-**The heading-only format this project started with.** `CLAUDE.md` originally specified a record as
-`# ADR-XXXX: Title` followed by `## Status`, `## Context`, `## Decision`, `## Alternatives
-Considered`, `## Consequences`, `## References`. Rejected because a test cannot reliably read a
-heading: status, date and the supersession graph have to be parsed out of prose, and any record
-that formats a heading differently silently drops out of every check. Machine-readable frontmatter
-is what makes the integrity test possible at all. The section structure survived; only the metadata
-moved.
+**The heading-only format `CLAUDE.md` originally specified.** A record was to be `# ADR-XXXX:
+Title` followed by `## Status`, `## Context`, `## Decision`, `## Alternatives Considered`,
+`## Consequences`, `## References`. Rejected because a test cannot reliably read a heading: status,
+date and the supersession graph would have to be parsed out of prose, and any record that formatted
+a heading differently would silently drop out of every check. Machine-readable frontmatter is what
+makes the integrity test possible at all. The section structure survived; only the metadata moved.
 
-**Records with no integrity test** — what tellus has. Rejected on the principle that motivated the
-whole layer: *the prose is not what holds the system together, the tests are.* Documentation rots
-precisely because nothing breaks when it is wrong. A records layer with no test is a folder of
-markdown with a good intention attached.
+**Records with no integrity test.** Rejected on the principle the whole layer rests on: *the prose
+is not what holds the system together — the tests are.* Prose only ever has to explain, never to
+enforce, and it can only be trusted to explain if something fails when it stops being true. A
+records layer with no test is a folder of markdown with a good intention attached.
 
-**A hand-maintained index checked by a test** — what repcheck has. Its `README.md` carries every
-record twice, in a subject table and in a timeline, and it needs two separate assertions to notice
-either falling behind. Rejected because anything hand-copied drifts; generating from frontmatter
-removes the failure mode instead of detecting it. The cost is that the index is no longer
-hand-editable, which is the point.
+**A hand-maintained index, checked by a test.** Each record would be listed by hand in the subject
+table and again in the timeline, with assertions catching omissions. Rejected because anything
+hand-copied drifts, and two views of one set are two things to fall behind; generating from
+frontmatter removes the failure mode rather than detecting it. The cost is that the index is no
+longer hand-editable, which is the point.
 
 **A third sequence, `science/` (`SCI-NNNN`)**, for choices like which earthquake catalogue is
-authoritative for Etna, or which plume model to trust. Genuinely tempting: the evidence behind such
-a record is papers and provider documentation rather than benchmarks and timings. **Rejected for
-now**, because the reader is the same person and the `## References` section already carries that
-kind of evidence — a third sequence adds machinery without separating audiences. **Revisit when
-science records are crowding architecture records out of the architecture table**, which is a
+authoritative for a volcano, or which plume model to trust. Genuinely tempting, because the
+evidence behind such a record is papers and provider documentation rather than benchmarks and
+timings. **Rejected for now**: the reader is the same person, and `## References` already carries
+that kind of evidence, so a third sequence adds machinery without separating audiences. **Revisit
+when science records are crowding architecture records out of the architecture table** — a
 countable trigger rather than a feeling.
 
-**Starting the layer once the shape is clearer.** This is what repcheck did, and the six weeks of
-reconstruction is the reason it is rejected. The decisions most worth recording are the earliest
-ones, because they constrain everything after them and are the least recoverable from the code.
+**Deferring the layer until the architecture settles.** Rejected for the reason given in Context:
+decisions made before the shape is clear are the ones that determine the shape, and reconstructing
+them later means reconstructing them from the code they produced, which is the one source that
+cannot contain what was rejected.
 
 ## Evidence
 
-Measured in repcheck before its ADR-0001, carried over verbatim from that record:
-
-| | |
-|---|---|
-| CLAUDE.md | 6,067 lines / 447KB ≈ 124k tokens, loaded into every session |
-| Comment lines in `apps/` + `packages/` + `scripts/` | 16,642 of 56,327 — 30% of the source |
-| Dated decisions in CLAUDE.md | 160 |
-| Decisions CLAUDE.md claims are "pinned" by a test | 67, against 76 real test files |
-
-That last row is the one that unlocks this. **The prose is not what holds the system together —
-the tests are.** 67 decisions already failed the test suite if reverted. The prose only ever has to
-explain, never to enforce.
-
-Fault injection against this repo's own integrity test on 2026-09-18, to check it fails when it
+Fault injection against this repo's integrity test on 2026-09-18, to check that it fails when it
 should. Four files were planted at once, carrying seven distinct faults — a duplicate id; an
 accepted record with no alternatives, a free-text date (`18 Sept`), an empty `pinned-by` line
 followed by a dangling `supersedes: 0099`, and a link to a record that does not exist; a design
@@ -164,9 +147,9 @@ record without its `DESIGN-` prefix; and a source file citing a record path that
 Nine checks fired; the three that passed had no fault aimed at them. After removing the planted
 faults: 12 pass, 0 fail.
 
-One defect was found in repcheck's parser while porting it and is fixed here: the frontmatter field
-regex used `\s*`, which matches across a newline, so an empty `pinned-by:` line would consume the
-following line and report `supersedes: 0003` as a missing test file. This version matches `[ \t]*`.
+One defect in the frontmatter parser was found this way and fixed. The field regex matched `\s*`
+after the field name, and `\s` crosses a newline — so an empty `pinned-by:` line consumed the
+line below it and reported `supersedes: 0003` as a missing test file. It now matches `[ \t]*`.
 
 ## Consequences
 
@@ -174,12 +157,17 @@ Knowing why a constant is what it is costs a hop to a second file. That is the t
 acceptable only because the pointer is always left at the constant, so the hop is one click and
 never a search.
 
-`CLAUDE.md` stays short — its own instruction — and becomes working rules plus an index, rather
-than an encyclopedia that is loaded in full into every session.
+`CLAUDE.md` stays short — its own instruction — and becomes working rules plus a routing test,
+rather than an encyclopedia loaded in full into every session.
 
-The integrity test is now a thing that can fail for boring reasons: a renamed file, a moved
-directory, a forgotten `bun run adr:index`. That noise is the price of the check being real, and
-the failure messages name the offending file.
+The integrity test can now fail for boring reasons: a renamed file, a moved directory, a forgotten
+`bun run adr:index`. That noise is the price of the check being real, and the failure messages name
+the offending file.
+
+The reference check fires on any full `docs/adr/…md` path in any tracked file, **prose included**,
+so a record that wants to quote a path it does not want resolved must name the file without the
+prefix. An escape-hatch marker was considered and rejected: a check with an opt-out is a check
+people opt out of.
 
 **The risk to watch is records written as summaries.** If that starts happening this has made
 things worse, and the check is simple: a record whose Evidence section has no numbers in it is
@@ -193,6 +181,5 @@ an LLM inventing an observation, committed by a human instead.
 
 ## References
 
-- repcheck `docs/adr/architecture/0001-record-decisions-in-adrs.md` — the record this inherits from
 - [MADR](https://adr.github.io/madr/) — "Markdown **Any** Decision Records", the convention for
-  widening decision records beyond architecture without inventing a new prefix
+  widening decision records beyond architecture without inventing a second prefix

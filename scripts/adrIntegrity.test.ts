@@ -2,9 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { DIR, loadAdrs, renderIndex, ROOT, spliceIndex, STATUSES, TYPES } from './adrIndex';
 
-// ADR INTEGRITY — the measurement half of the decision records. Ported from repcheck, where it was
-// written after a real collision: two sessions each wrote an ADR-0028 and an ADR-0029 three minutes
-// apart, and nothing noticed. A numbering scheme with no uniqueness check is not a numbering scheme.
+// ADR INTEGRITY — the measurement half of the decision records. See ADR-0001.
+//
+// A numbering scheme with no uniqueness check is not a numbering scheme: two sessions working at
+// the same time will guess the same next number, and nothing notices until a human reads both.
 //
 // Everything here is cheap and structural. It cannot tell you a record is TRUE (only reading the
 // code does that); it tells you the set is navigable — ids unique, links resolvable, pinned-by files
@@ -89,8 +90,9 @@ describe('ADR integrity', () => {
   });
 
   it('keeps amendment symmetric', () => {
-    // The same claim as supersession, and in repcheck it was the unchecked half: `amended-by` was
-    // maintained by hand, read by nothing, and two back-pointers had gone missing.
+    // The same claim as supersession, and the half that is easy to leave unchecked: `amended-by`
+    // is written by hand and, if nothing reads it, silently goes missing on the older record —
+    // which is the one place a reader needs the signal that the story continues.
     const bad: string[] = [];
     for (const a of adrs) {
       for (const t of a.amends)
@@ -115,8 +117,8 @@ describe('ADR integrity', () => {
 
   it('resolves every record path mentioned ANYWHERE in the repo', () => {
     // Code comments say `see docs/adr/...`, nested CLAUDE.md files link across, skills name the
-    // template. In repcheck those were the half of the references nothing was watching, and a
-    // directory move broke them silently. git lists the files so ignored trees are never walked.
+    // template. These are the half of the references that live in code rather than in docs/, and
+    // a directory move breaks them silently. git lists the files so ignored trees are never walked.
     //
     // NOTE: this fires on ANY full `docs/adr/...md` path in any tracked file, prose included. A
     // record describing a broken link as EVIDENCE must therefore not write the full path — say
@@ -138,8 +140,9 @@ describe('ADR integrity', () => {
   });
 
   it('requires the alternatives that lost in every accepted record', () => {
-    // A record without them is a restatement of the code. repcheck had to make this a ratchet
-    // because 19 records predated the rule; nothing here does, so it is simply zero.
+    // A record without them is a restatement of the code: it says what was built, which the code
+    // already says, and omits the only thing the code cannot say. ADR-0001 makes this required,
+    // and no record predates that rule, so the allowed count is simply zero.
     const thin = adrs
       .filter((a) => a.status === 'accepted')
       .filter((a) => !/^#{2,3}\s+.*(Alternatives|rejected|considered)/im.test(a.body))
