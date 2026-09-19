@@ -4,10 +4,16 @@ title: The domain types — provenance nested, ids and units branded, vocabulari
 type: architecture
 status: accepted
 date: 2026-09-19
-pinned-by: src/adapters/quakeml/parse.test.ts, src/domain/quakemlVocabulary.test.ts
+pinned-by: backend/tests/test_quakeml.py, backend/tests/test_vocabulary.py
+amended-by: 0003
 ---
 
 # ADR-0002: The domain types — provenance nested, ids and units branded, vocabularies closed
+
+> **Amended by [ADR-0003](0003-the-backend-is-python-on-fastapi.md):** all five decisions stand, but
+> they are now implemented in Python — `NewType` for brands, Pydantic `Literal` for vocabularies —
+> and the TypeScript code and tests this record describes were removed. Its Evidence is kept as it
+> was measured.
 
 ## Context
 

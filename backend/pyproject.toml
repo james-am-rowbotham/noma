@@ -1,0 +1,49 @@
+[project]
+name = "noma"
+version = "0.1.0"
+description = "Noma's backend: reads scientific formats, enforces Noma's rules on them, serves them. See docs/adr/architecture/0003-the-backend-is-python-on-fastapi.md"
+authors = [
+    { name = "James Rowbotham", email = "james.rowbotham.work@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "obspy>=1.5.1",
+    "pydantic>=2.13",
+    "uvicorn>=0.53.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.0",
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# E/F: errors. I: import order. UP: modern syntax. B: likely bugs. DTZ: timezone-naive datetimes —
+# the trap ADR-0002 and ADR-0003 both record, caught by the linter as well as the types.
+select = ["E", "F", "I", "UP", "B", "DTZ", "SIM", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+# ObsPy ships without type information. That looseness is confined to the one module that reads it
+# (src/noma/adapters/quakeml.py, which says so at its top), not relaxed for the whole project.
+reportMissingTypeStubs = false

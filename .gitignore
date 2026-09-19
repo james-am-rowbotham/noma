@@ -5,9 +5,11 @@ dist/
 .env.*
 !.env.example
 
-# python workers
+# python backend (ADR-0003)
 __pycache__/
 .venv/
+.pytest_cache/
+.ruff_cache/
 
 # claude code, per-machine
 .claude/settings.local.json

@@ -137,17 +137,20 @@ Never present a simulation as an observation or forecast unless appropriately va
 
 Prefer a simple, modular architecture.
 
-Likely technologies include:
+Decided:
 
-* TypeScript
-* React
-* Mapbox GL / MapLibre
+* **Backend: Python on FastAPI** (`backend/`). ObsPy reads seismology formats; Pydantic models enforce Noma's rules on what it produces. See ADR-0003.
+* **Browser: TypeScript and React**, with Base UI for primitives (DESIGN-0001). Its types are generated from the backend's OpenAPI, never copied by hand.
+
+Likely, not yet decided:
+
+* MapLibre or Mapbox GL
 * WebGL where appropriate
-* PostgreSQL
-* PostGIS
-* Python scientific workers
+* PostgreSQL with PostGIS
 * object storage
 * asynchronous jobs for long-running models
+
+`bun run check` runs everything: the decision-record checks, and the backend's format, lint, strict type check and tests.
 
 Use adapters around external scientific systems rather than tightly coupling the application to a single provider or model.
 

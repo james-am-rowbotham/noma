@@ -18,5 +18,7 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "scripts"]
+  // Repository tooling only, for now. The backend is Python (ADR-0003); the browser app will add
+  // its own directory here.
+  "include": ["scripts"]
 }
