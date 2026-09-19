@@ -144,8 +144,8 @@ Fault injection against this repo's own integrity test on 2026-09-18, to check i
 should. Four files were planted at once, carrying seven distinct faults — a duplicate id; an
 accepted record with no alternatives, a free-text date (`18 Sept`), an empty `pinned-by` line
 followed by a dangling `supersedes: 0099`, and a link to a record that does not exist; a design
-record without its `DESIGN-` prefix; and a source file citing
-`docs/adr/architecture/9999-nope.md`. The index went stale as a consequence of the first three:
+record without its `DESIGN-` prefix; and a source file citing a record path that does not exist
+(`9999-nope.md`, under `architecture/`). The index went stale as a consequence of the first three:
 
 ```
 (fail) ADR integrity > has no duplicate ids

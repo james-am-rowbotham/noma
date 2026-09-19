@@ -117,6 +117,11 @@ describe('ADR integrity', () => {
     // Code comments say `see docs/adr/...`, nested CLAUDE.md files link across, skills name the
     // template. In repcheck those were the half of the references nothing was watching, and a
     // directory move broke them silently. git lists the files so ignored trees are never walked.
+    //
+    // NOTE: this fires on ANY full `docs/adr/...md` path in any tracked file, prose included. A
+    // record describing a broken link as EVIDENCE must therefore not write the full path — say
+    // `9999-nope.md, under architecture/` instead. ADR-0001 hit exactly this. The alternative was
+    // an escape hatch, rejected: a check with an opt-out is a check people opt out of.
     const tracked = Bun.spawnSync(['git', 'ls-files', '--cached', '--others', '--exclude-standard'], {
       cwd: ROOT,
     })
