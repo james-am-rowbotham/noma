@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
+<q:quakeml xmlns:q="http://quakeml.org/xmlns/quakeml/1.2" xmlns="http://quakeml.org/xmlns/bed/1.2" xmlns:ingv="http://webservices.ingv.it/">
+  <eventParameters publicID="smi:webservices.ingv.it/fdsnws/event/1/query">
+    <event publicID="smi:webservices.ingv.it/fdsnws/event/1/query?eventId=46891682">
+      <type>earthquake</type>
+      <description>
+        <type>region name</type>
+        <text>7 km W Linguaglossa (CT)</text>
+      </description>
+      <preferredMagnitudeID>smi:webservices.ingv.it/fdsnws/event/1/query?magnitudeId=158311491</preferredMagnitudeID>
+      <preferredOriginID>smi:webservices.ingv.it/fdsnws/event/1/query?originId=146858351</preferredOriginID>
+      <creationInfo>
+        <agencyID>INGV</agencyID>
+        <author>SURVEY-INGV-CT#KATALOC</author>
+        <creationTime>2026-08-15T10:46:44</creationTime>
+        <ingv:id_locator>32006</ingv:id_locator>
+      </creationInfo>
+      <origin publicID="smi:webservices.ingv.it/fdsnws/event/1/query?originId=146858351">
+        <evaluationMode>manual</evaluationMode>
+        <type>hypocenter</type>
+        <time>
+          <value>2026-08-15T10:24:08.910000</value>
+        </time>
+        <latitude>
+          <value>37.832</value>
+        </latitude>
+        <longitude>
+          <value>15.07</value>
+        </longitude>
+        <depth>
+          <value>1210</value>
+        </depth>
+        <depthType>from location</depthType>
+        <originUncertainty>
+          <preferredDescription>horizontal uncertainty</preferredDescription>
+          <horizontalUncertainty>200.0</horizontalUncertainty>
+          <confidenceLevel>68</confidenceLevel>
+        </originUncertainty>
+        <quality>
+          <azimuthalGap>108</azimuthalGap>
+          <associatedPhaseCount>18</associatedPhaseCount>
+          <usedPhaseCount>18</usedPhaseCount>
+          <standardError>0.25</standardError>
+          <minimumDistance>0.03867</minimumDistance>
+          <maximumDistance>0.38311</maximumDistance>
+          <associatedStationCount>15</associatedStationCount>
+          <usedStationCount>15</usedStationCount>
+        </quality>
+        <evaluationStatus>reviewed</evaluationStatus>
+        <methodID>smi:webservices.ingv.it/fdsnws/event/1/query?methodId=301</methodID>
+        <earthModelID>smi:webservices.ingv.it/fdsnws/event/1/query?earthModelId=51</earthModelID>
+        <creationInfo>
+          <agencyID>INGV</agencyID>
+          <author>SURVEY-INGV-CT#SeismPicker_SO-OE</author>
+          <version>100</version>
+          <creationTime>2026-08-15T10:46:43</creationTime>
+          <ingv:quality>CB</ingv:quality>
+        </creationInfo>
+      </origin>
+      <magnitude publicID="smi:webservices.ingv.it/fdsnws/event/1/query?magnitudeId=158311491">
+        <originID>smi:webservices.ingv.it/fdsnws/event/1/query?originId=146858351</originID>
+        <type>ML</type>
+        <mag>
+          <value>3.9</value>
+          <uncertainty>0.2</uncertainty>
+        </mag>
+        <methodID>smi:webservices.ingv.it/fdsnws/event/1/query?methodId=301</methodID>
+        <creationInfo>
+          <agencyID>INGV</agencyID>
+          <author>SURVEY-INGV-CT#KATALOC</author>
+          <creationTime>2026-08-15T10:46:43</creationTime>
+          <ingv:mag_quality>B</ingv:mag_quality>
+        </creationInfo>
+        <comment>
+          <text>Local magnitude</text>
+        </comment>
+      </magnitude>
+    </event>
+  </eventParameters>
+</q:quakeml>

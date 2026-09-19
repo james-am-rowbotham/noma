@@ -1,0 +1,12 @@
+{
+  "name": "noma",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "adr:index": "bun scripts/adrIndex.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0"
+  }
+}

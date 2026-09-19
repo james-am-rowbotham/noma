@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# python workers
+__pycache__/
+.venv/
+
+# claude code, per-machine
+.claude/settings.local.json
