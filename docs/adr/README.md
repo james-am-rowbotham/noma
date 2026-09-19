@@ -42,6 +42,7 @@ index below matching disk.
 | [ADR-0001](architecture/0001-record-decisions-in-adrs.md) | Decisions are recorded, and a test keeps the records navigable | accepted |
 | [ADR-0002](architecture/0002-how-the-domain-types-are-shaped.md) | The domain types — provenance nested, ids and units branded, vocabularies closed | accepted |
 | [ADR-0003](architecture/0003-the-backend-is-python-on-fastapi.md) | The backend is Python, on FastAPI, with ObsPy reading and Pydantic enforcing | accepted |
+| [ADR-0004](architecture/0004-postgis-locally-in-compose.md) | PostgreSQL with PostGIS, built from official images; SQLAlchemy Core and Alembic from Python | accepted |
 
 ## Design
 
@@ -57,5 +58,6 @@ index below matching disk.
 | 2026-09-18 | [DESIGN-0001](design/DESIGN-0001-base-ui-and-our-own-tokens.md) | Base UI for behaviour, and the look is ours |
 | 2026-09-19 | [ADR-0002](architecture/0002-how-the-domain-types-are-shaped.md) | The domain types — provenance nested, ids and units branded, vocabularies closed |
 | 2026-09-19 | [ADR-0003](architecture/0003-the-backend-is-python-on-fastapi.md) | The backend is Python, on FastAPI, with ObsPy reading and Pydantic enforcing |
+| 2026-09-19 | [ADR-0004](architecture/0004-postgis-locally-in-compose.md) | PostgreSQL with PostGIS, built from official images; SQLAlchemy Core and Alembic from Python |
 
 <!-- index:end -->

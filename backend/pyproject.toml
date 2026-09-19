@@ -7,9 +7,13 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi>=0.141.1",
     "obspy>=1.5.1",
+    "psycopg[binary]>=3.3.6",
     "pydantic>=2.13",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.0.54",
     "uvicorn>=0.53.0",
 ]
 
@@ -28,6 +32,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"
+markers = ["db: needs the local database — `docker compose up -d` from the repository root"]
 
 [tool.ruff]
 line-length = 100

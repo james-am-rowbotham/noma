@@ -37,6 +37,7 @@ Never invent observations, model outputs, measurements, citations or scientific 
 * Keep the number of persistent controls small.
 * Advanced functionality must always have an obvious path back to the simple map.
 * Scientific provenance and uncertainty must remain accessible.
+* **Uncertainty is always shown, and always subtly.** Never omitted: a value whose uncertainty was not reported says so, because 3.9 on its own looks exactly as precise as 3.9 ± 0.0. Never louder than the value itself.
 * Prefer contextual actions over mode switching.
 
 The target experience is:
@@ -141,16 +142,16 @@ Decided:
 
 * **Backend: Python on FastAPI** (`backend/`). ObsPy reads seismology formats; Pydantic models enforce Noma's rules on what it produces. See ADR-0003.
 * **Browser: TypeScript and React**, with Base UI for primitives (DESIGN-0001). Its types are generated from the backend's OpenAPI, never copied by hand.
+* **Database: PostgreSQL 18 with PostGIS 3.6**, reached from Python through SQLAlchemy Core and changed only through Alembic migrations, each reversible. Locally in Docker Compose; production via Terraform, not yet written. See ADR-0004.
 
 Likely, not yet decided:
 
 * MapLibre or Mapbox GL
 * WebGL where appropriate
-* PostgreSQL with PostGIS
 * object storage
 * asynchronous jobs for long-running models
 
-`bun run check` runs everything: the decision-record checks, and the backend's format, lint, strict type check and tests.
+`bun run check` runs everything: the decision-record checks, and the backend's format, lint, strict type check and tests. The backend tests need the database: `bun run db:up` first.
 
 Use adapters around external scientific systems rather than tightly coupling the application to a single provider or model.
 

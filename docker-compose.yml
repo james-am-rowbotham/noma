@@ -1,0 +1,35 @@
+# LOCAL DEVELOPMENT ONLY. Production will be provisioned with Terraform (not yet written): a managed
+# PostgreSQL with the PostGIS extension. Keep this image's versions in step with whatever that
+# managed service offers, so local and production run the same database. See ADR-0004.
+#
+#   docker compose up -d        start
+#   docker compose down         stop, keep the data
+#   docker compose down -v      stop and DELETE the data
+
+name: noma
+
+services:
+  db:
+    # Official PostgreSQL 18.6 plus PostGIS 3 from PostgreSQL's own repository — see the Dockerfile
+    # for why not the postgis/postgis image.
+    build: docker/db
+    image: noma-db:18.6
+    environment:
+      POSTGRES_USER: noma
+      POSTGRES_PASSWORD: noma
+      POSTGRES_DB: noma
+    ports:
+      # 5432 is taken on the development machine by another project; override with NOMA_DB_PORT.
+      - "${NOMA_DB_PORT:-5433}:5432"
+    volumes:
+      # PostgreSQL 18's image keeps its data under /var/lib/postgresql/18/, so the volume mounts the
+      # parent. The /var/lib/postgresql/data path in older guides no longer applies.
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noma -d noma"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  db:

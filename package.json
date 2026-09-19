@@ -11,6 +11,9 @@
     "check": "bun run check:repo && bun run check:backend",
     "check:repo": "bun run typecheck && bun test scripts/",
     "check:backend": "cd backend && uv run ruff format --check . && uv run ruff check . && uv run pyright && uv run pytest -q",
+    "db:up": "docker compose up -d --wait",
+    "db:migrate": "cd backend && uv run alembic upgrade head",
+    "db:psql": "docker compose exec db psql -U noma -d noma",
     "adr:index": "bun scripts/adrIndex.ts"
   },
   "type": "module"
