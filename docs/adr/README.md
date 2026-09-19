@@ -39,7 +39,7 @@ index below matching disk.
 
 | # | Decision | Status |
 |---|---|---|
-| [ADR-0001](architecture/0001-record-decisions-in-adrs.md) | Decisions are recorded, and a test keeps the records navigable | proposed |
+| [ADR-0001](architecture/0001-record-decisions-in-adrs.md) | Decisions are recorded, and a test keeps the records navigable | accepted |
 
 ## Design
 
