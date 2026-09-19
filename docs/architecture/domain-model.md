@@ -237,6 +237,12 @@ arrives.
 
 ## Open
 
+- **Which provenance class is an earthquake location?** The first adapter labels INGV's catalogue
+  `OBSERVED`, and that is a placeholder, not a decision. An origin is not measured directly: it is
+  *calculated* from seismometer arrival times against an earth model (the Etna record names one,
+  `earthModelID`), and Noma *retrieved* it from a live service. The eight classes mix two axes —
+  what the data IS (observed, calculated, modelled) and how Noma GOT it (retrieved, historical) —
+  and one field cannot hold both cleanly. Needs deciding before the class is shown to anyone.
 - "Above magnitude 2" of which magnitude type? The type is free text in the data (`ML`, `ml`, `Mw`,
   `Md`…). That the types are not comparable is standard seismology but is NOT yet sourced here.
 - Build the standard services, or run existing certified ones (a SensorThings server, a Features
