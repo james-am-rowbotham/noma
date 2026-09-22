@@ -268,11 +268,24 @@ So an upload cannot be a file picker. Noma has to ask — what is this column, i
 which timezone, measured how, how uncertain, who measured it, who may see it — and the answers ARE
 the record's provenance. This is the same shape as the product principle: look, ask, understand.
 
+**18. Contributed records belong to a named Dataset.** (2026-09-22, proposed) A researcher's upload
+is not loose records with an owner on each: it is *their SO2 campaign of March 2026*, a thing with a
+name, an identity, a licence and a single provenance story. `Dataset` is the W3C Data Catalog
+Vocabulary's own noun (DCAT 3, Recommendation 2024-08-22); for imagery and grids it is a STAC
+`Collection`, which is the same idea in that family's language.
+
+This is what keeps "show only mine" and "hide this campaign" possible without inventing grouping
+retroactively — records that were only ever individual cannot be addressed as a set later.
+
+It also resolves the tension with the UX principles rather than breaking them. The principle rules
+out making people *navigate* data sources: a list of INGV, USGS, GVP with checkboxes. It does not
+rule out a scientist asking to see their own campaign against the agency's — that is an
+investigation, not navigation, and "compare mine with INGV's" is a question whose answer changes the
+map. A Dataset is addressable; whether any control for it is ever persistent is a separate
+question, and the answer is still no.
+
 ## Open
 
-- Does contributed data appear as something a person switches on, or does it simply show up when
-  it is relevant to the place and question being asked? A switchable list is a layer list, which
-  the UX principles rule out; but a researcher does need to know whether their own data is in view.
 - "Above magnitude 2" of which magnitude type? The type is free text in the data (`ML`, `ml`, `Mw`,
   `Md`…). That the types are not comparable is standard seismology but is NOT yet sourced here.
 - Build the standard services, or run existing certified ones (a SensorThings server, a Features
