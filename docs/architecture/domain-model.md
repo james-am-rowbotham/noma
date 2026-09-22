@@ -244,22 +244,27 @@ is nearly free — it is naming and structure. Building every service at once is
 goes live when its family does: fdsnws-event with the first earthquakes, the others as their data
 arrives.
 
-**16. Contributed data is data, held to the same rules.** (2026-09-22, proposed) A researcher's own
+**16. Contributed data is data, held to the same rules.** (2026-09-22, proposed — LATER, NOT NOW.
+Everything is public agency data until accounts exist, so there is nothing to keep apart. What is
+required now is only that nothing forecloses it.) A researcher's own
 measurements and their own model runs are ordinary records: same envelope, same provenance class,
 same required units and uncertainty. What differs is only the Source — a person rather than an
 agency — and that Noma did not fetch it.
 
-Two things follow that are cheap now and expensive later:
+Two things follow, neither of them urgent — an earlier draft of this point called them "cheap now
+and expensive later", which was a general rule quoted without checking it against where Noma
+actually is. With no queries written and no private data in existence, adding a nullable owner
+column and backfilling it to "public" is a small migration, and there is nothing to leak in the
+meantime:
 
 - **Owner and visibility on every record**, and every query behind a public interface filters on
-  visibility. Retrofitting this is both a large migration and, until it is finished, a way to serve
-  private data through the standard endpoints.
+  visibility.
 - **A Source may be a person.** ORCID identifies researchers as ROR identifies organisations. The
   licence on a Source already governs re-serving (point 13); for contributed data the uploader sets
   it, so "may Noma re-serve this?" becomes a question with a per-record answer.
 
 **17. Ingestion of contributed data is a conversation, and the conversation IS the provenance.**
-(2026-09-22, proposed) Agencies send QuakeML, StationXML, NetCDF — formats that carry units,
+(2026-09-22, proposed — LATER, NOT NOW.) Agencies send QuakeML, StationXML, NetCDF — formats that carry units,
 timestamps with timezones, uncertainties and a stated method. A researcher sends a spreadsheet,
 which carries none of those. Every rule Noma enforces at the QuakeML boundary has no source of
 truth at the spreadsheet boundary.
@@ -268,7 +273,9 @@ So an upload cannot be a file picker. Noma has to ask — what is this column, i
 which timezone, measured how, how uncertain, who measured it, who may see it — and the answers ARE
 the record's provenance. This is the same shape as the product principle: look, ask, understand.
 
-**18. Contributed records belong to a named Dataset.** (2026-09-22, proposed) A researcher's upload
+**18. Contributed records belong to a named Dataset.** (2026-09-22, proposed — LATER, NOT NOW. A
+dataset can be reconstructed from what records already carry: their source and the document they
+arrived in.) A researcher's upload
 is not loose records with an owner on each: it is *their SO2 campaign of March 2026*, a thing with a
 name, an identity, a licence and a single provenance story. `Dataset` is the W3C Data Catalog
 Vocabulary's own noun (DCAT 3, Recommendation 2024-08-22); for imagery and grids it is a STAC
