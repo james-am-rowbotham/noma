@@ -63,15 +63,15 @@ class Model(BaseModel):
 
 # ── Provenance: Noma's, not QuakeML's ────────────────────────────────────────
 
+# One question: what kind of claim is this? Not how Noma got it (the envelope's source and
+# retrieved_at say that) and not when it is about (the record's own times say that). See ADR-0005.
 ProvenanceClass = Literal[
-    "OBSERVED",  # someone measured it
-    "HISTORICAL",  # from an archive or an older account
-    "RETRIEVED",  # fetched from a live service
-    "CALCULATED",  # arithmetic over other records
-    "MODELLED",  # a scientific model produced it
-    "SIMULATED",  # a what-if run
-    "INFERRED",  # we worked it out, and could be wrong
-    "FORECAST",  # a claim about the future
+    "OBSERVED",  # measured, by instrument or person — including an agency's own processing
+    "CALCULATED",  # Noma did arithmetic over other records, so Noma can be wrong
+    "MODELLED",  # a model produced it from REAL inputs: a claim about the real world
+    "SIMULATED",  # a model run on HYPOTHETICAL inputs: not a claim about the real world
+    "INFERRED",  # a judgement that could be wrong
+    "FORECAST",  # issued by an agency responsible for it — never Noma's own output
 ]
 
 

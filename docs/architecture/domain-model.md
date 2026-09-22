@@ -145,6 +145,9 @@ the model and its version. An observed record has an Agent and no Activity. A mo
 
 ## Agreed
 
+*Numbered in the order points were settled, not by section — a point keeps its number if it moves
+from Proposed to Agreed.*
+
 **1. Where something happened is a fact; which system it belongs to is a question.** (2026-09-18)
 An earthquake has a location. It does not have a volcano. "Etna's earthquakes" means *events that
 fall inside Etna's outline*, asked each time — a spatial query, not a stored pointer. Storing the
@@ -177,6 +180,12 @@ already has a data model, Noma uses its vocabulary and its shape rather than inv
 **4. Noma is fully compliant and interoperable with other tools.** (2026-09-18) Not only a reader of
 standards: other scientific tools must be able to read Noma. This replaced an earlier proposal to use
 the standards' names but not build their services.
+
+**15. A provenance class answers one question: what kind of claim is this?** (2026-09-22) Six
+classes — OBSERVED, CALCULATED, MODELLED, SIMULATED, INFERRED, FORECAST. Not how Noma obtained the
+record (its envelope already says), and not when it is about (its times already say). An agency's
+own processing of its own instruments is OBSERVED, so INGV's earthquake locations are OBSERVED.
+Noma never labels its own output FORECAST. See ADR-0005.
 
 ## Proposed, not yet agreed
 
@@ -237,12 +246,6 @@ arrives.
 
 ## Open
 
-- **Which provenance class is an earthquake location?** The first adapter labels INGV's catalogue
-  `OBSERVED`, and that is a placeholder, not a decision. An origin is not measured directly: it is
-  *calculated* from seismometer arrival times against an earth model (the Etna record names one,
-  `earthModelID`), and Noma *retrieved* it from a live service. The eight classes mix two axes —
-  what the data IS (observed, calculated, modelled) and how Noma GOT it (retrieved, historical) —
-  and one field cannot hold both cleanly. Needs deciding before the class is shown to anyone.
 - "Above magnitude 2" of which magnitude type? The type is free text in the data (`ML`, `ml`, `Mw`,
   `Md`…). That the types are not comparable is standard seismology but is NOT yet sourced here.
 - Build the standard services, or run existing certified ones (a SensorThings server, a Features

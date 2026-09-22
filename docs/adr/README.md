@@ -43,6 +43,7 @@ index below matching disk.
 | [ADR-0002](architecture/0002-how-the-domain-types-are-shaped.md) | The domain types — provenance nested, ids and units branded, vocabularies closed | accepted |
 | [ADR-0003](architecture/0003-the-backend-is-python-on-fastapi.md) | The backend is Python, on FastAPI, with ObsPy reading and Pydantic enforcing | accepted |
 | [ADR-0004](architecture/0004-postgis-locally-in-compose.md) | PostgreSQL with PostGIS, built from official images; SQLAlchemy Core and Alembic from Python | accepted |
+| [ADR-0005](architecture/0005-one-question-per-provenance-class.md) | A provenance class answers one question — what kind of claim is this? | accepted |
 
 ## Design
 
@@ -59,5 +60,6 @@ index below matching disk.
 | 2026-09-19 | [ADR-0002](architecture/0002-how-the-domain-types-are-shaped.md) | The domain types — provenance nested, ids and units branded, vocabularies closed |
 | 2026-09-19 | [ADR-0003](architecture/0003-the-backend-is-python-on-fastapi.md) | The backend is Python, on FastAPI, with ObsPy reading and Pydantic enforcing |
 | 2026-09-19 | [ADR-0004](architecture/0004-postgis-locally-in-compose.md) | PostgreSQL with PostGIS, built from official images; SQLAlchemy Core and Alembic from Python |
+| 2026-09-22 | [ADR-0005](architecture/0005-one-question-per-provenance-class.md) | A provenance class answers one question — what kind of claim is this? |
 
 <!-- index:end -->

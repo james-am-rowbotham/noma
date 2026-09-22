@@ -1,0 +1,107 @@
+---
+id: 0005
+title: A provenance class answers one question — what kind of claim is this?
+type: architecture
+status: accepted
+date: 2026-09-22
+pinned-by: backend/tests/test_quakeml.py
+---
+
+# ADR-0005: A provenance class answers one question — what kind of claim is this?
+
+## Context
+
+`CLAUDE.md` listed eight provenance classes: OBSERVED, HISTORICAL, RETRIEVED, CALCULATED, MODELLED,
+SIMULATED, INFERRED, FORECAST. Every record in Noma wears one, and it is the field the whole product
+rests on — the general measurement standard says outright that it draws "no conceptual distinction
+between observations, interpretations and simulations", so this class is Noma's own and nothing
+external enforces it (ADR-0002).
+
+The first adapter exposed the problem. INGV's earthquake location could honestly be labelled three
+ways at once:
+
+- **OBSERVED** — it comes from seismometers
+- **CALCULATED** — it is worked out from arrival times against a model of the Earth's layers, which
+  the record itself names
+- **RETRIEVED** — Noma fetched it from a live web service
+
+All three were true. One field can hold one of them. A set of classes where the very first real
+record has no single right answer will be applied differently by each adapter, and a label that is
+applied inconsistently is worse than no label, because it reads as though it means something.
+
+## Decision
+
+**A provenance class answers exactly one question: *what kind of claim is this?*** Six answers:
+
+| Class | Means | Example |
+|---|---|---|
+| **OBSERVED** | measured, by instrument or by a person — including an agency's own standard processing of its own instruments | INGV's earthquake location; a 17th-century eyewitness account |
+| **CALCULATED** | Noma did arithmetic over other records, so Noma is the source and Noma can be wrong | "14 earthquakes above magnitude 2 this week" |
+| **MODELLED** | a scientific model produced it from real inputs: a claim about the real world, made by a model | an ash cloud computed from today's wind |
+| **SIMULATED** | a model run on hypothetical inputs: not a claim about the real world at all | "what if the plume reached 8 km?" |
+| **INFERRED** | a judgement that could be wrong, by Noma or by an LLM | "these two agencies' records are one earthquake" |
+| **FORECAST** | an official forecast, issued by an agency responsible for it | an advisory from a Volcanic Ash Advisory Centre |
+
+**Noma never labels its own output FORECAST.** Its own model run about tomorrow is MODELLED. This
+turns `CLAUDE.md`'s rule — never present a simulation as a forecast — from a convention into
+something the adapters enforce: only an external issuing authority produces a FORECAST.
+
+**RETRIEVED and HISTORICAL are removed**, because they answer questions the record already answers:
+
+- *How did Noma get it?* Every record's envelope carries `source_id` and `retrieved_at` (ADR-0002).
+  Every piece of external data is retrieved, so RETRIEVED distinguished nothing.
+- *When is it about?* Every record carries its own time and the time it was produced. HISTORICAL
+  conflated "about the past" with "from an old document"; the first is the record's time, the second
+  is its source. A 17th-century eyewitness account is OBSERVED — a person saw it — from an old
+  source.
+
+**The boundary between OBSERVED and CALCULATED is who did the work.** An agency's standard
+processing of its own instruments is OBSERVED: seismology and the international measurement standard
+both treat a catalogue location as an observation, arrived at by a procedure. CALCULATED means Noma
+computed it, and exists to keep Noma's own claims separable from the agencies'.
+
+## Alternatives considered
+
+**Keep all eight.** Rejected on the evidence above: the first real record Noma parsed had three
+defensible labels, so adapters would diverge. It also leaves two of the eight adding nothing —
+every external record is RETRIEVED.
+
+**Five classes, dropping FORECAST as well.** Genuinely tempting, and the most consistent version of
+the argument: an official ash advisory is MODELLED, about a future time, from an official source, and
+all three of those facts are already on the record, so "forecast" could be worked out rather than
+stored. Rejected because the one rule `CLAUDE.md` states most firmly is about forecasts, and under
+five classes nothing in the type prevents Noma's own model run being presented as one — every screen
+would have to re-derive "is this official?" correctly, and one that forgot would present a
+projection as a forecast. Keeping FORECAST as a class that only an external issuing authority can
+produce makes that mistake impossible rather than merely discouraged.
+
+**Two fields — one for the kind of claim, one for how it was obtained.** Rejected as the same
+information twice: the second field would restate `source_id` and `retrieved_at`.
+
+**Deriving the class from the provenance graph** rather than storing it, in the manner of the W3C
+provenance standard: a record generated by an activity that used hypothetical inputs is a
+simulation, and so on. Correct in principle, and Noma keeps that graph anyway (Model and Run,
+domain-model). Rejected as the primary mechanism because the class must be legible on a single
+record without walking a graph — including on a record from an external source that has no graph
+behind it.
+
+## Consequences
+
+The classes now sort cleanly by how much a reader should trust a record as a description of the real
+world: OBSERVED and CALCULATED rest on measurements, MODELLED and FORECAST are a model's claims about
+the real world, SIMULATED is not about the real world, and INFERRED may simply be wrong. That
+ordering is what a display rule can use.
+
+`CLAUDE.md`'s provenance section is rewritten, and the enumeration in `backend/src/noma/domain/quake.py`
+loses two values. No stored data is affected: nothing has been written to a database yet.
+
+**FORECAST now carries an obligation.** Before any adapter produces one, it must establish that the
+source is an agency responsible for issuing that forecast. For volcanic ash that is a Volcanic Ash
+Advisory Centre; for other domains it has to be established per source, and recorded on the source.
+
+**The open question this closes:** INGV's earthquake locations are OBSERVED, and the adapter's label
+is no longer a placeholder.
+
+**Revisit if** a record appears that is honestly none of the six — the likeliest candidate is data
+an agency has itself flagged as provisional or withdrawn, which is a different axis again (status,
+not kind) and should be its own field rather than a seventh class.

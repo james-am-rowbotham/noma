@@ -121,18 +121,18 @@ Record:
 * input datasets
 * output datasets
 
-Distinguish between:
+Every record carries a **provenance class**, and it answers exactly one question: *what kind of claim is this?* See ADR-0005.
 
-* OBSERVED
-* HISTORICAL
-* RETRIEVED
-* CALCULATED
-* MODELLED
-* SIMULATED
-* INFERRED
-* FORECAST
+* **OBSERVED** — measured, by instrument or by a person. Includes an agency's own standard processing of its instruments: an earthquake location is OBSERVED, not CALCULATED.
+* **CALCULATED** — Noma did arithmetic over other records. Noma is then the source, and Noma can be wrong.
+* **MODELLED** — a scientific model produced it from real inputs. A claim about the real world, made by a model.
+* **SIMULATED** — a model run on hypothetical inputs. Not a claim about the real world at all.
+* **INFERRED** — a judgement that could be wrong, by Noma or by an LLM.
+* **FORECAST** — an official forecast, issued by an agency responsible for it. **Noma never labels its own output FORECAST**; its own model run about tomorrow is MODELLED.
 
-Never present a simulation as an observation or forecast unless appropriately validated and labelled.
+Never present a simulation as an observation or forecast.
+
+*How* Noma obtained a record is not a provenance class: the source and the time it was fetched are already on every record. Nor is *when it is about*: every record carries its own time and the time it was produced.
 
 ## Architecture principles
 
