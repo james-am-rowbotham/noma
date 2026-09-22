@@ -244,8 +244,35 @@ is nearly free — it is naming and structure. Building every service at once is
 goes live when its family does: fdsnws-event with the first earthquakes, the others as their data
 arrives.
 
+**16. Contributed data is data, held to the same rules.** (2026-09-22, proposed) A researcher's own
+measurements and their own model runs are ordinary records: same envelope, same provenance class,
+same required units and uncertainty. What differs is only the Source — a person rather than an
+agency — and that Noma did not fetch it.
+
+Two things follow that are cheap now and expensive later:
+
+- **Owner and visibility on every record**, and every query behind a public interface filters on
+  visibility. Retrofitting this is both a large migration and, until it is finished, a way to serve
+  private data through the standard endpoints.
+- **A Source may be a person.** ORCID identifies researchers as ROR identifies organisations. The
+  licence on a Source already governs re-serving (point 13); for contributed data the uploader sets
+  it, so "may Noma re-serve this?" becomes a question with a per-record answer.
+
+**17. Ingestion of contributed data is a conversation, and the conversation IS the provenance.**
+(2026-09-22, proposed) Agencies send QuakeML, StationXML, NetCDF — formats that carry units,
+timestamps with timezones, uncertainties and a stated method. A researcher sends a spreadsheet,
+which carries none of those. Every rule Noma enforces at the QuakeML boundary has no source of
+truth at the spreadsheet boundary.
+
+So an upload cannot be a file picker. Noma has to ask — what is this column, in what units, in
+which timezone, measured how, how uncertain, who measured it, who may see it — and the answers ARE
+the record's provenance. This is the same shape as the product principle: look, ask, understand.
+
 ## Open
 
+- Does contributed data appear as something a person switches on, or does it simply show up when
+  it is relevant to the place and question being asked? A switchable list is a layer list, which
+  the UX principles rule out; but a researcher does need to know whether their own data is in view.
 - "Above magnitude 2" of which magnitude type? The type is free text in the data (`ML`, `ml`, `Mw`,
   `Md`…). That the types are not comparable is standard seismology but is NOT yet sourced here.
 - Build the standard services, or run existing certified ones (a SensorThings server, a Features

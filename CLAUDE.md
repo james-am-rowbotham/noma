@@ -24,6 +24,11 @@ The LLM is an **orchestrator and interpreter, not the scientific source of truth
 
 Never invent observations, model outputs, measurements, citations or scientific conclusions.
 
+**Noma is not only a reader of other people's data.** A researcher studying a system must be able to bring their own observations and run their own models, and both must carry the same discipline — provenance, units, uncertainty, licence — as anything Noma fetched from an agency. Two consequences hold from the first table onward, because retrofitting either is expensive and, in the first case, a way to leak private data:
+
+* **Every record has an owner and a visibility**, and every query behind a public interface filters on it.
+* **A source may be a person as readily as an agency** — identified by ORCID where an agency has ROR — and the licence on a source governs whether Noma may re-serve that data at all.
+
 ## UX principles
 
 * Map first.
