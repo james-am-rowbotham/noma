@@ -8,7 +8,7 @@ it came from (domain-model point 8), and re-serving is possible without trusting
 
 import hashlib
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -75,21 +75,55 @@ def ingest_quakeml(
 
     for event in parsed.events:
         event_id = _insert(
-            connection, "quake_event", {**_envelope(event.envelope), **_event(event)}
+            connection,
+            "quake_event",
+            {**_envelope(event.envelope), **_event(event), "content_hash": _content_hash(event)},
         )
+        if event_id is None:
+            # This exact version of the event is already stored. Its origins and magnitudes may
+            # still have been revised, so they are still offered; they conflict harmlessly if not.
+            event_id = _event_row_id(connection, event)
         for origin in (o for o in parsed.origins if o.event_id == event.public_id):
             _insert(
                 connection,
                 "quake_origin",
-                {"event_id": event_id, **_envelope(origin.envelope), **_origin(origin)},
+                {
+                    "event_id": event_id,
+                    **_envelope(origin.envelope),
+                    **_origin(origin),
+                    "content_hash": _content_hash(origin),
+                },
             )
         for magnitude in (m for m in parsed.magnitudes if m.event_id == event.public_id):
             _insert(
                 connection,
                 "quake_magnitude",
-                {"event_id": event_id, **_envelope(magnitude.envelope), **_magnitude(magnitude)},
+                {
+                    "event_id": event_id,
+                    **_envelope(magnitude.envelope),
+                    **_magnitude(magnitude),
+                    "content_hash": _content_hash(magnitude),
+                },
             )
     return parsed
+
+
+def _event_row_id(connection: Connection, event: Event) -> UUID:
+    return (
+        connection.execute(
+            text("""
+            SELECT id FROM quake_event
+            WHERE source_id = :source_id AND public_id = :public_id AND content_hash = :hash
+        """),
+            {
+                "source_id": event.envelope.source_id,
+                "public_id": event.public_id,
+                "hash": _content_hash(event),
+            },
+        )
+        .one()
+        .id
+    )
 
 
 def _save_document(
@@ -121,12 +155,26 @@ def _save_document(
     return row.id
 
 
-def _insert(connection: Connection, table: str, values: Mapping[str, Any]) -> UUID:
+def _content_hash(record: Event | Origin | Magnitude) -> bytes:
+    """A fingerprint of everything the AGENCY said, so a re-fetch of identical data is recognised
+    and a revision is not. The envelope is excluded on purpose: `retrieved_at` differs on every
+    fetch, and Noma fetching the same record twice is not the agency changing its mind."""
+    body = record.model_dump_json(exclude={"envelope"})
+    return hashlib.sha256(body.encode()).digest()
+
+
+def _insert(connection: Connection, table: str, values: Mapping[str, Any]) -> UUID | None:
     columns = ", ".join(values)
     placeholders = ", ".join(f":{c}" for c in values)
     # `table` is never user input: it is one of this module's own table names.
-    sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
-    return connection.execute(text(sql), dict(values)).one().id
+    # DO NOTHING on conflict: the same version of a record arriving again is not news. A REVISION
+    # has a different content_hash and so lands as a new row beside its predecessor.
+    sql = (
+        f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        f" ON CONFLICT (source_id, public_id, content_hash) DO NOTHING RETURNING id"
+    )
+    row = connection.execute(text(sql), dict(values)).one_or_none()
+    return row.id if row else None
 
 
 # ── domain model -> columns ──────────────────────────────────────────────────
@@ -222,15 +270,31 @@ def _magnitude(m: Magnitude) -> dict[str, Any]:
 # ── reading ──────────────────────────────────────────────────────────────────
 
 
-def load_event(connection: Connection, source_id: SourceId, public_id: str) -> ParsedQuakeML:
-    """One event with every account of it — the point of the split (domain-model point 2)."""
-    where = {"source_id": source_id, "public_id": public_id}
+def load_event(
+    connection: Connection,
+    source_id: SourceId,
+    public_id: str,
+    *,
+    as_of: datetime | None = None,
+) -> ParsedQuakeML:
+    """One event with every account of it — the point of the split (domain-model point 2).
+
+    `as_of` reads the catalogue as Noma held it at that moment: the question an observatory asks
+    when reviewing a crisis afterwards. Default is everything received so far.
+    """
+    where: dict[str, Any] = {
+        "source_id": source_id,
+        "public_id": public_id,
+        "as_of": as_of or datetime.now(tz=UTC),
+    }
     events = [
         _read_event(r)
         for r in connection.execute(
-            text(
-                "SELECT * FROM quake_event WHERE source_id = :source_id AND public_id = :public_id"
-            ),
+            text("""
+                SELECT DISTINCT ON (source_id, public_id) * FROM quake_event
+                WHERE source_id = :source_id AND public_id = :public_id AND retrieved_at <= :as_of
+                ORDER BY source_id, public_id, retrieved_at DESC
+            """),
             where,
         ).mappings()
     ]
@@ -241,42 +305,55 @@ def load_event(connection: Connection, source_id: SourceId, public_id: str) -> P
 
 #: Every read of an origin or magnitude joins its event, because the record carries the event's
 #: QuakeML public id — not the row id, which is Noma's and means nothing outside this database.
-_WITH_EVENT = """
-    SELECT c.*, e.public_id AS event_public_id
+#:
+#: And every read picks ONE version per public id: the newest Noma had received `as_of` (default,
+#: now). Records accumulate versions because agencies revise (domain-model point 2), so a read that
+#: did not choose would return the same earthquake several times over. Passing an earlier `as_of`
+#: is what answers "what did we know at 10:25?".
+_LATEST = """
+    SELECT DISTINCT ON (c.source_id, c.public_id) c.*, e.public_id AS event_public_id
     FROM {table} c JOIN quake_event e ON e.id = c.event_id
+    WHERE c.retrieved_at <= :as_of
+      AND {filter}
+    ORDER BY c.source_id, c.public_id, c.retrieved_at DESC
 """
 
 
 def _children(connection: Connection, table: str, where: Mapping[str, Any]) -> Sequence[RowMapping]:
-    sql = (
-        _WITH_EVENT.format(table=table)
-        + """
-        WHERE e.source_id = :source_id AND e.public_id = :public_id ORDER BY c.public_id
-    """
+    sql = _LATEST.format(
+        table=table, filter="e.source_id = :source_id AND e.public_id = :public_id"
     )
     return list(connection.execute(text(sql), dict(where)).mappings())
 
 
 def origins_within(
-    connection: Connection, *, longitude: float, latitude: float, radius_m: float
+    connection: Connection,
+    *,
+    longitude: float,
+    latitude: float,
+    radius_m: float,
+    as_of: datetime | None = None,
 ) -> Sequence[Origin]:
     """ "Earthquakes near here" — asked each time, never stored (domain-model point 1).
 
     ST_DWithin on a GEOGRAPHY column takes METRES. On a geometry column the same number would mean
     degrees (ADR-0004), which is the difference between 30 km and most of a continent.
     """
-    sql = (
-        _WITH_EVENT.format(table="quake_origin")
-        + """
-        WHERE ST_DWithin(c.point, ST_MakePoint(:longitude, :latitude)::geography, :radius_m)
-        ORDER BY c.time_value DESC
-    """
+    sql = _LATEST.format(
+        table="quake_origin",
+        filter="ST_DWithin(c.point, ST_MakePoint(:longitude, :latitude)::geography, :radius_m)",
     )
     rows = connection.execute(
         text(sql),
-        {"longitude": longitude, "latitude": latitude, "radius_m": radius_m},
+        {
+            "longitude": longitude,
+            "latitude": latitude,
+            "radius_m": radius_m,
+            "as_of": as_of or datetime.now(tz=UTC),
+        },
     ).mappings()
-    return [_read_origin(r) for r in rows]
+    # Newest first: the ordering the query needs is by version, so time is sorted here.
+    return sorted((_read_origin(r) for r in rows), key=lambda o: o.time.value, reverse=True)
 
 
 # ── columns -> domain model ──────────────────────────────────────────────────

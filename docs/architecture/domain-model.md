@@ -174,6 +174,15 @@ The second reason is the one that matters most for monitoring: overwriting means
 answer *what did we know at 10:25?*, which is the central question when an observatory reviews a
 crisis afterwards. This is what `resultTime` and `retrievedAt` are for.
 
+**19. Every version of a record received is kept.** (2026-09-23) Point 2's second reason —
+agencies revise — only holds if Noma stores what it is sent each time. A record's identity in the
+database is (source, public id, fingerprint of the agency's own fields): an unchanged re-fetch
+conflicts and does nothing, a revision lands beside its predecessor. Reads pick the newest version
+as of a moment, which is what makes *what did we know at 10:25?* a query. The fingerprint covers
+the agency's fields, not Noma's envelope, because Noma fetching twice is not the agency changing
+its mind — and not the agency's own version number, which would depend on every agency maintaining
+it honestly.
+
 **3. Follow the industry standards for the nouns.** (2026-09-18) Where a scientific community
 already has a data model, Noma uses its vocabulary and its shape rather than inventing one.
 

@@ -5,7 +5,7 @@ the wrong place, read from the wrong place, or quietly dropped — including the
 ever draw, which is exactly where a silent loss would otherwise hide (domain-model point 8).
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import Connection, Engine, text
@@ -121,3 +121,76 @@ def test_a_document_noma_will_not_accept_stores_nothing(conn: Connection):
     savepoint.rollback()
     assert conn.execute(text("SELECT count(*) FROM quake_event")).scalar_one() == 0
     assert conn.execute(text("SELECT count(*) FROM raw_document")).scalar_one() == 0
+
+
+class TestRevisions:
+    """Domain-model point 2's second half: the same agency revises. An automatic detection is
+    published in seconds and a human-reviewed one replaces it later — and the first version is
+    what an observatory reviewing a crisis needs to see."""
+
+    @staticmethod
+    def revised() -> bytes:
+        # The same earthquake as INGV would re-publish it: same public ids, a moved location and a
+        # magnitude the review changed.
+        return (
+            XML.replace(b"<value>37.832</value>", b"<value>37.840</value>")
+            .replace(b"<value>3.9</value>", b"<value>4.1</value>")
+            .replace(b"<evaluationStatus>reviewed", b"<evaluationStatus>final")
+        )
+
+    def ingest_at(self, conn: Connection, document: bytes, when: datetime):
+        return ingest_quakeml(
+            conn,
+            document,
+            source_id=SourceId("ingv"),
+            provenance="OBSERVED",
+            retrieved_at=when,
+        )
+
+    def test_the_same_data_twice_adds_nothing(self, conn: Connection):
+        self.ingest_at(conn, XML, RETRIEVED_AT)
+        self.ingest_at(conn, XML, RETRIEVED_AT + timedelta(hours=1))
+        rows = conn.execute(text("SELECT count(*) FROM quake_origin")).scalar_one()
+        assert rows == 1, "an unchanged re-fetch should not create a version"
+
+    def test_a_revision_is_kept_beside_the_version_before_it(self, conn: Connection):
+        self.ingest_at(conn, XML, RETRIEVED_AT)
+        self.ingest_at(conn, self.revised(), RETRIEVED_AT + timedelta(hours=1))
+        rows = conn.execute(text("SELECT count(*) FROM quake_origin")).scalar_one()
+        assert rows == 2, "the earlier version must survive the revision"
+
+    def test_reading_gives_the_newest_version(self, conn: Connection):
+        first = self.ingest_at(conn, XML, RETRIEVED_AT)
+        self.ingest_at(conn, self.revised(), RETRIEVED_AT + timedelta(hours=1))
+
+        now = load_event(conn, SourceId("ingv"), first.events[0].public_id)
+
+        assert now.origins[0].latitude.value == 37.840
+        assert now.magnitudes[0].mag.value == 4.1
+        assert now.origins[0].evaluation_status == "final"
+
+    def test_what_did_we_know_at_the_time(self, conn: Connection):
+        # The question this whole design exists to answer.
+        first = self.ingest_at(conn, XML, RETRIEVED_AT)
+        self.ingest_at(conn, self.revised(), RETRIEVED_AT + timedelta(hours=1))
+
+        before = load_event(
+            conn,
+            SourceId("ingv"),
+            first.events[0].public_id,
+            as_of=RETRIEVED_AT + timedelta(minutes=30),
+        )
+
+        assert before.origins[0].latitude.value == 37.832
+        assert before.magnitudes[0].mag.value == 3.9
+        assert before.origins[0].evaluation_status == "reviewed"
+
+    def test_a_search_of_the_map_returns_one_row_per_earthquake(self, conn: Connection):
+        # Not one per version — otherwise a much-revised earthquake would crowd the map.
+        self.ingest_at(conn, XML, RETRIEVED_AT)
+        self.ingest_at(conn, self.revised(), RETRIEVED_AT + timedelta(hours=1))
+        near = origins_within(
+            conn, longitude=ETNA_QUAKE_LON, latitude=ETNA_QUAKE_LAT, radius_m=30_000
+        )
+        assert len(near) == 1
+        assert near[0].latitude.value == 37.840
