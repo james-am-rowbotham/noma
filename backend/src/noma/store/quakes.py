@@ -59,9 +59,12 @@ def ingest_quakeml(
     provenance: ProvenanceClass,
     retrieved_at: datetime,
     media_type: str = "application/xml",
+    request_url: str | None = None,
 ) -> ParsedQuakeML:
     """Store a QuakeML document and everything Noma reads out of it. Returns what was stored."""
-    document_id = _save_document(connection, document, source_id, retrieved_at, media_type)
+    document_id = _save_document(
+        connection, document, source_id, retrieved_at, media_type, request_url
+    )
     envelope = Envelope(
         provenance=provenance,
         source_id=source_id,
@@ -90,13 +93,19 @@ def ingest_quakeml(
 
 
 def _save_document(
-    connection: Connection, document: bytes, source_id: str, retrieved_at: datetime, media_type: str
+    connection: Connection,
+    document: bytes,
+    source_id: str,
+    retrieved_at: datetime,
+    media_type: str,
+    request_url: str | None,
 ) -> UUID:
     # The same document fetched twice is stored once; its id is stable, so re-ingesting is safe.
     row = connection.execute(
         text("""
-            INSERT INTO raw_document (source_id, retrieved_at, media_type, sha256, content)
-            VALUES (:source_id, :retrieved_at, :media_type, :sha256, :content)
+            INSERT INTO raw_document (source_id, retrieved_at, media_type, sha256, content,
+                                      request_url)
+            VALUES (:source_id, :retrieved_at, :media_type, :sha256, :content, :request_url)
             ON CONFLICT (source_id, sha256) DO UPDATE SET source_id = EXCLUDED.source_id
             RETURNING id
         """),
@@ -106,6 +115,7 @@ def _save_document(
             "media_type": media_type,
             "sha256": hashlib.sha256(document).digest(),
             "content": document,
+            "request_url": request_url,
         },
     ).one()
     return row.id

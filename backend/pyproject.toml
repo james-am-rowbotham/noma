@@ -9,6 +9,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
     "fastapi>=0.141.1",
+    "httpx2>=2.13.0",
     "obspy>=1.5.1",
     "psycopg[binary]>=3.3.6",
     "pydantic>=2.13",
@@ -23,7 +24,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.13.0",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "ruff>=0.16.8",
@@ -31,8 +31,12 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--strict-markers"
-markers = ["db: needs the local database — `docker compose up -d` from the repository root"]
+markers = [
+    "db: needs the local database — `docker compose up -d` from the repository root",
+    "network: calls a live external service; skipped by default (`-m network` to run)",
+]
+# Network tests are opt-in: a broken connection should never look like broken code.
+addopts = "--strict-markers -m 'not network'"
 
 [tool.ruff]
 line-length = 100
