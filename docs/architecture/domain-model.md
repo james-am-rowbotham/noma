@@ -196,6 +196,19 @@ the agency's fields, not Noma's envelope, because Noma fetching twice is not the
 its mind — and not the agency's own version number, which would depend on every agency maintaining
 it honestly.
 
+**20. Noma fetches because someone looked, not on a schedule.** (2026-09-23) Looking at an area and
+a window makes Noma hold that area and window; nothing runs when nobody is using Noma. Each request
+to an agency is recorded — area, window, filter, when — so a pan or zoom into ground already covered
+asks nothing, and "asked and the catalogue was empty" is distinguished from "never asked". A window
+that ended long enough ago is settled and never re-fetched; one touching the present is rechecked.
+
+**What this gives up, and it is not recoverable:** revisions that happen while nobody is looking.
+An agency's service only ever reports what its catalogue says NOW — INGV cannot be asked what it
+said at 03:00. So a detection published automatically at 03:00 and reviewed at 03:20, unwatched,
+leaves only the reviewed version obtainable. For settled historical data that costs nothing; for
+watching a volcano through unrest it would matter, and the answer then is a standing watch on this
+same machinery rather than a different design.
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the

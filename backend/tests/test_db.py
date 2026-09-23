@@ -18,12 +18,18 @@ def test_postgis_is_on(db: Engine):
     assert version.startswith("3.6."), version
 
 
-@pytest.mark.usefixtures("db")  # the test database must exist, whatever order tests run in
-def test_the_migrations_run_down_and_back_up():
+def test_the_migrations_run_down_and_back_up(db: Engine):
     # Every migration must be reversible, or a bad deploy cannot be rolled back.
     cfg = alembic_config(url_of_test_database())
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
+
+    # Going down to base DROPS the PostGIS extension, and recreating it gives its types new
+    # internal ids. Connections already pooled still hold the old ones, and any spatial query on
+    # them then fails with "no spatial operator found for st_dwithin". Throwing the pool away
+    # forces fresh connections. Found because this poisoned tests in OTHER files that ran later —
+    # they passed on their own, which is exactly how an order-dependent failure hides.
+    db.dispose()
 
 
 def test_postgis_takes_longitude_first(db: Engine):
