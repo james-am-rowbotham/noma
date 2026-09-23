@@ -8,6 +8,7 @@ it came from (domain-model point 8), and re-serving is possible without trusting
 
 import hashlib
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -358,8 +359,26 @@ def origins_within(
 
 # ── columns -> domain model ──────────────────────────────────────────────────
 
+#: Timestamp columns on the QuakeML tables. JSON has no datetime type, so `to_jsonb` renders these
+#: as ISO strings and the models — which are strict, and refuse a string where a datetime belongs —
+#: would reject them. Converted back explicitly rather than by loosening the models.
+_TIMESTAMPS = ("retrieved_at", "time_value", "creation_time")
 
-def _read_envelope(r: RowMapping) -> Envelope:
+
+def _from_jsonb(row: Mapping[str, Any], event_public_id: str) -> dict[str, Any]:
+    out = {**row, "event_public_id": event_public_id}
+    for key in _TIMESTAMPS:
+        if isinstance(out.get(key), str):
+            out[key] = datetime.fromisoformat(out[key])
+    return out
+
+
+#: A row, from a query or rebuilt from jsonb. SQLAlchemy's RowMapping is a Mapping[Any, Any] and
+#: Mapping's key type is invariant, so Mapping[str, Any] would not accept one.
+Row = Mapping[Any, Any]
+
+
+def _read_envelope(r: Row) -> Envelope:
     return Envelope(
         provenance=r["provenance"],
         source_id=SourceId(r["source_id"]),
@@ -368,7 +387,7 @@ def _read_envelope(r: RowMapping) -> Envelope:
     )
 
 
-def _uncertainties(r: RowMapping, name: str, unit: str = "") -> dict[str, Any]:
+def _uncertainties(r: Row, name: str, unit: str = "") -> dict[str, Any]:
     u = f"_{unit}" if unit else ""
     return {
         "uncertainty": r[f"{name}_uncertainty{u}"],
@@ -378,7 +397,7 @@ def _uncertainties(r: RowMapping, name: str, unit: str = "") -> dict[str, Any]:
     }
 
 
-def _read_event(r: RowMapping) -> Event:
+def _read_event(r: Row) -> Event:
     return Event(
         envelope=_read_envelope(r),
         public_id=EventId(r["public_id"]),
@@ -397,7 +416,7 @@ def _read_event(r: RowMapping) -> Event:
     )
 
 
-def _read_origin(r: RowMapping) -> Origin:
+def _read_origin(r: Row) -> Origin:
     return Origin(
         envelope=_read_envelope(r),
         public_id=OriginId(r["public_id"]),
@@ -445,7 +464,7 @@ def _read_origin(r: RowMapping) -> Origin:
     )
 
 
-def _read_magnitude(r: RowMapping) -> Magnitude:
+def _read_magnitude(r: Row) -> Magnitude:
     return Magnitude(
         envelope=_read_envelope(r),
         public_id=MagnitudeId(r["public_id"]),
@@ -460,3 +479,91 @@ def _read_magnitude(r: RowMapping) -> Magnitude:
         agency_id=r["agency_id"],
         creation_time=r["creation_time"],
     )
+
+
+# ── what the map asks for ────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class EarthquakeSummary:
+    """One earthquake as a map shows it: the event, plus the single account its agency stands
+    behind. Every competing account is still there — `load_event` returns them — but a map draws
+    one dot per earthquake, not one per version or per origin."""
+
+    event: Event
+    origin: Origin
+    magnitude: Magnitude | None
+
+
+#: Latest version of each record, as of a moment (domain-model point 19), then each event joined to
+#: the origin and magnitude IT names as preferred. An event whose preferred origin Noma has not
+#: ingested is left out: a dot has to have a position.
+_SUMMARY = """
+WITH e AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_event
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+), o AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_origin
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+), m AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_magnitude
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+)
+SELECT
+    e.public_id AS event_public_id,
+    to_jsonb(e) AS event, to_jsonb(o) AS origin, to_jsonb(m) AS magnitude
+FROM e
+JOIN o ON o.event_id = e.id AND o.public_id = e.preferred_origin_public_id
+LEFT JOIN m ON m.event_id = e.id AND m.public_id = e.preferred_magnitude_public_id
+WHERE o.point && ST_MakeEnvelope(:west, :south, :east, :north, 4326)::geography
+  AND o.time_value >= :start AND o.time_value <= :end
+  AND (CAST(:min_magnitude AS double precision) IS NULL OR m.mag >= :min_magnitude)
+ORDER BY o.time_value DESC
+LIMIT :limit
+"""
+
+
+def earthquakes_in(
+    connection: Connection,
+    *,
+    west: float,
+    south: float,
+    east: float,
+    north: float,
+    start: datetime,
+    end: datetime,
+    min_magnitude: float | None = None,
+    as_of: datetime | None = None,
+    limit: int = 2000,
+) -> Sequence[EarthquakeSummary]:
+    rows = connection.execute(
+        text(_SUMMARY),
+        {
+            "west": west,
+            "south": south,
+            "east": east,
+            "north": north,
+            "start": start,
+            "end": end,
+            "min_magnitude": min_magnitude,
+            "as_of": as_of or datetime.now(tz=UTC),
+            "limit": limit,
+        },
+    ).mappings()
+
+    out: list[EarthquakeSummary] = []
+    for r in rows:
+        event = _from_jsonb(r["event"], r["event_public_id"])
+        origin = _from_jsonb(r["origin"], r["event_public_id"])
+        out.append(
+            EarthquakeSummary(
+                event=_read_event(event),
+                origin=_read_origin(origin),
+                magnitude=(
+                    _read_magnitude(_from_jsonb(r["magnitude"], r["event_public_id"]))
+                    if r["magnitude"]
+                    else None
+                ),
+            )
+        )
+    return out

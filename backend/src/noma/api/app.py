@@ -1,19 +1,21 @@
 """Noma's API. See ADR-0003.
 
-Deliberately empty of data for now: the first endpoint that serves earthquakes needs somewhere real
-to read them from, and serving the test fixture as though it were live would present a stored file
-as a current observation — the thing Noma exists not to do.
-
 Run from backend/:  uv run uvicorn noma.api.app:app --reload
+Interactive docs:   http://localhost:8000/docs
 """
 
 from fastapi import FastAPI
+
+from noma.api.earthquakes import router as earthquakes
 
 app = FastAPI(
     title="Noma",
     summary="An interface for exploring complex physical systems.",
     version="0.1.0",
 )
+
+
+app.include_router(earthquakes)
 
 
 @app.get("/health", tags=["meta"])
