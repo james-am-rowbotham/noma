@@ -268,6 +268,37 @@ Observations carry the same fingerprint as events (point 19): re-ingesting the i
 Etna's summit stations are not openly published — the highest open one sits about 6 km from the
 craters.
 
+**24. A satellite detection is a pixel, and it fits none of the three families.** (2026-09-24)
+NASA's FIRMS feed gives Etna its only open, live, numeric evidence of heat — the signal
+volcanologists actually watch, volcanic tremor, is published as four PNG images
+([volcanic activity](../research/volcanic-activity.md)). It is not an Event: nothing happened at
+an instant, a radiometer looked. It is not a Datastream: no instrument sits at a place producing a
+series — the *place* is different every pass. It is not a grid either. Under SensorThings it would
+be an Observation whose FeatureOfInterest is its own patch of ground, and family 2 has no room for
+that, because there the location belongs to the station.
+
+So it gets its own table rather than being forced into one of the three. Whether that makes a
+fourth family or an extension of the second is left open below; what is not open is that a
+detection carries its own footprint.
+
+**The centre of a pixel is not where the heat is.** `scan` and `track` — about 375 m each for this
+instrument, wider towards the edge of the swath — are the ground the radiometer integrated over,
+and they are required on every detection, in the model as well as in the parser. Drawn as a dot, a
+measurement made over 375 m claims a precision of metres.
+
+**The provider's confidence stays a word.** "low", "nominal", "high" is an ordinal scale; a number
+in that field would invite averaging it.
+
+**It is an active fire product, not a volcano product.** A wildfire on Etna's flank looks exactly
+like a lava flow to it. Noma stores what was measured — radiated power at a place — and does not
+call it volcanic. What it is evidence *of* is a question for whoever reads it.
+
+**And it exposes an assumption in point 20.** Demand-driven fetching works because an agency keeps
+its history: ask fdsnws-event for last March and last March comes back. The free FIRMS feed is a
+rolling 24 hours, so looking cannot recover what was not collected. For a source with a rolling
+window, "fetch because someone looked" gives history only from the day Noma started looking — the
+first case where a standing watch is the only way to have the past, rather than a nicety.
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the
@@ -379,3 +410,6 @@ question, and the answer is still no.
 - Build the standard services, or run existing certified ones (a SensorThings server, a Features
   server) beside our own code? A question for the architecture step, not this one.
 - The Smithsonian catalogue's terms of use could not be read. Needed before System data is re-served.
+- Is a satellite detection (point 24) a fourth family, or family 2 with the location moved from the
+  station to the reading? Answer it when a second source of the same shape arrives — a second
+  satellite, or an InSAR scene — and not before, on one example.

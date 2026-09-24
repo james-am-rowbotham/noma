@@ -22,6 +22,7 @@ BACKEND = REPO / "backend"
 ETNA = REPO / "docs/research/example-quakeml-ingv-etna-2026-08-15.xml"
 QUAKEML_XSD = REPO / "schemas/quakeml/1.2/QuakeML-BED-1.2.xsd"
 ESLN = REPO / "docs/research/example-gnss-ingv-esln.pos"
+FIRMS = REPO / "docs/research/example-firms-viirs-etna-2026-09-24.csv"
 
 
 # ── the database ─────────────────────────────────────────────────────────────

@@ -10,11 +10,13 @@ import httpx2 as httpx
 from sqlalchemy import Connection
 
 from noma.adapters.fdsnws import CatalogueError, Fetched
+from noma.adapters.firms import europe_24h_url, parse_firms
 from noma.adapters.gnss_pos import parse_pos
 from noma.adapters.quakeml import ParsedQuakeML
 from noma.domain.quake import Envelope, ProvenanceClass, SourceId
 from noma.store.quakes import ingest_quakeml, save_document
 from noma.store.series import save_series
+from noma.store.thermal import save_detections
 
 
 def store(
@@ -88,3 +90,67 @@ def ingest_station_series(
         raw=str(document_id),
     )
     return save_series(connection, parse_pos(fetched.document, envelope))
+
+
+#: NASA, the source the thermal detections come from.
+NASA_FIRMS = SourceId("nasa_firms")
+
+#: Etna and its flanks, to keep out of the database a fire in Portugal that arrived in the same
+#: file. Wider than the edifice (about 40 km) so a flank flow or a fire on the lower slopes is
+#: still seen.
+ETNA_BBOX = (14.70, 37.55, 15.35, 38.00)
+
+
+def fetch_thermal(url: str | None = None, *, timeout: float = 60.0) -> Fetched:
+    """Fetch a FIRMS recent-detections file. Defaults to VIIRS over Europe, last 24 hours."""
+    target = httpx.URL(url or europe_24h_url())
+    try:
+        response = httpx.get(target, timeout=timeout, follow_redirects=True)
+    except httpx.HTTPError as e:
+        raise CatalogueError(f"could not reach {target.host}: {e}") from e
+
+    retrieved_at = datetime.now(tz=UTC)
+    if response.status_code != 200:
+        raise CatalogueError(f"{target.host} answered {response.status_code} for {target.path}")
+    return Fetched(
+        document=response.content,
+        request_url=str(target),
+        retrieved_at=retrieved_at,
+        media_type="text/csv",
+    )
+
+
+def ingest_thermal(
+    connection: Connection,
+    *,
+    bbox: tuple[float, float, float, float] = ETNA_BBOX,
+    url: str | None = None,
+    source_id: SourceId = NASA_FIRMS,
+) -> int:
+    """Fetch thermal detections and store the ones inside `bbox`. Returns how many were written.
+
+    THE DOCUMENT IS A CONTINENT AND THE RECORDS ARE A BOX, deliberately. The keyless FIRMS file
+    covers all of Europe, so that whole file is what was fetched and that whole file is what is
+    kept — trimming it first would mean `envelope.raw` pointed at bytes no agency ever sent. The
+    box then decides which rows become records.
+
+    OBSERVED: a satellite radiometer measured it, and NASA's own processing turned the radiance
+    into a detection — an agency processing its own instrument (ADR-0005). That it is a detection
+    of HEAT and not of an eruption is a matter for whoever reads it; Noma does not relabel it.
+    """
+    fetched = fetch_thermal(url)
+    document_id = save_document(
+        connection,
+        fetched.document,
+        source_id=source_id,
+        retrieved_at=fetched.retrieved_at,
+        media_type=fetched.media_type,
+        request_url=fetched.request_url,
+    )
+    envelope = Envelope(
+        provenance="OBSERVED",
+        source_id=source_id,
+        retrieved_at=fetched.retrieved_at,
+        raw=str(document_id),
+    )
+    return save_detections(connection, parse_firms(fetched.document, envelope, bbox=bbox))
