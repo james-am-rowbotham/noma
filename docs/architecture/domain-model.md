@@ -209,6 +209,24 @@ leaves only the reviewed version obtainable. For settled historical data that co
 watching a volcano through unrest it would matter, and the answer then is a standing watch on this
 same machinery rather than a different design.
 
+**21. A source says where it answers for.** (2026-09-24) Which agency to ask about a place is data
+— a region and a service URL on the source — not a constant in code. "Earthquakes here" asks every
+source whose region covers the whole view; a source covering only part is left out rather than
+half-answering, because a partial answer drawn on a map looks exactly like a complete one. An area
+no source answers for reports that, and is never mistaken for an area with no earthquakes.
+
+The regions are OPERATIONAL, not scientific: where Noma asks an agency, not where its instruments
+reach.
+
+This exists because the alternative failed silently. Noma asked INGV about everywhere; INGV runs
+Italy's network and answers HTTP 204 for Hawaii, which Noma recorded as "asked, and the catalogue is
+genuinely empty" and never asked again — a confident empty map over Kīlauea with no error.
+
+Where two regions overlap both are asked and both answers kept (point 10). Measured for one box and
+window around Etna: INGV 58 events, USGS 1 — and that one is the same earthquake, recorded by INGV
+as M3.9 at 10:24:08.910 "7 km W Linguaglossa" and by USGS as M3.6 at 10:24:10.174 "1 km NE of
+Sant'Alfio".
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the
