@@ -6,15 +6,18 @@
   },
   "private": true,
   "scripts": {
-    "test": "bun test scripts/",
-    "typecheck": "tsc --noEmit",
-    "check": "bun run check:repo && bun run check:backend",
-    "check:repo": "bun run typecheck && bun test scripts/",
+    "adr:index": "bun scripts/adrIndex.ts",
+    "api": "cd backend && uv run uvicorn noma.api.app:app --reload",
+    "check": "bun run check:repo && bun run check:backend && bun run check:web",
     "check:backend": "cd backend && uv run ruff format --check . && uv run ruff check . && uv run pyright && uv run pytest -q",
-    "db:up": "docker compose up -d --wait",
+    "check:repo": "bun run typecheck && bun test scripts/",
+    "check:web": "cd web && bun run lint && bun run build",
     "db:migrate": "cd backend && uv run alembic upgrade head",
     "db:psql": "docker compose exec db psql -U noma -d noma",
-    "adr:index": "bun scripts/adrIndex.ts"
+    "db:up": "docker compose up -d --wait",
+    "test": "bun test scripts/",
+    "typecheck": "tsc --noEmit",
+    "web": "cd web && bun run dev"
   },
   "type": "module"
 }
