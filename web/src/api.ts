@@ -68,3 +68,52 @@ export async function fetchEarthquakes(
   }
   return response.json()
 }
+
+// ── the cross-section ────────────────────────────────────────────────────────
+
+export interface OnProfile {
+  alongMetres: number
+  offsetMetres: number
+  /** Positive DOWNWARD. `uncertainty` is null when the agency did not state one — which is most of
+   *  them, and is the whole reason this view draws absence rather than a confident dot. */
+  depthMetres: (Quantity & { positive: 'down' }) | null
+  magnitude: MagnitudeValue | null
+  time: string
+  id: string
+  place: string | null
+  source: string
+  provenance: string
+  agency: string | null
+  reviewed: string | null
+  automatic: boolean | null
+  horizontalUncertaintyMetres: number | null
+}
+
+export interface Section {
+  profile: {
+    from: [number, number]
+    to: [number, number]
+    lengthMetres: number
+    widthMetres: number
+  }
+  earthquakes: OnProfile[]
+  attribution: Attribution[]
+  noma: { fetched: boolean; coverage: string; asked: string[] }
+}
+
+export async function fetchSection(
+  from: [number, number],
+  to: [number, number],
+  options: { widthMetres?: number; start?: Date; end?: Date; signal?: AbortSignal } = {},
+): Promise<Section> {
+  const params = new URLSearchParams({ from: from.join(','), to: to.join(',') })
+  if (options.widthMetres) params.set('widthMetres', String(options.widthMetres))
+  if (options.start) params.set('start', options.start.toISOString())
+  if (options.end) params.set('end', options.end.toISOString())
+
+  const response = await fetch(`${BASE}/earthquakes/section?${params}`, { signal: options.signal })
+  if (!response.ok) {
+    throw new Error(`${response.status}: ${(await response.text()).slice(0, 200)}`)
+  }
+  return response.json()
+}

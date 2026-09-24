@@ -12,6 +12,7 @@ maplibregl.setWorkerUrl(workerUrl)
 import { type Earthquakes, fetchEarthquakes } from '../api'
 import { basemapStyle } from './basemap'
 import { addEarthquakeLayers, setEarthquakes } from './earthquakes'
+import { addProfileLayers, setProfile } from './profileLine'
 
 // MapLibre is used directly rather than through a React wrapper. The map IS the interface here
 // (CLAUDE.md, "map first"), most of what it does is imperative, and a wrapper would mostly be
@@ -24,13 +25,35 @@ const OPENS_AT: { center: [number, number]; zoom: number } = {
   zoom: 10.5,
 }
 
+export interface Profile {
+  from: [number, number]
+  to: [number, number]
+}
+
 /* biome-ignore lint/suspicious/noShadowRestrictedNames: named Map on purpose — the map IS the
    interface (CLAUDE.md, "map first"). Where MapLibre's own Map class is needed alongside it,
    it is imported under an alias, as earthquakes.ts does. */
-export function Map({ onLoad }: { onLoad?: (state: Earthquakes) => void }) {
+export function Map({
+  onLoad,
+  drawing,
+  profile,
+  onProfile,
+  widthMetres,
+}: {
+  onLoad?: (state: Earthquakes) => void
+  /** While true, clicking the map sets the section's two ends instead of doing nothing. */
+  drawing?: boolean
+  profile?: Profile | null
+  onProfile?: (profile: Profile | null) => void
+  widthMetres?: number
+}) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
+  // Held in a ref so changing them does not tear the map down and rebuild it.
+  const drawState = useRef({ drawing, onProfile })
+  drawState.current = { drawing, onProfile }
 
   useEffect(() => {
     if (!container.current) return
@@ -54,6 +77,8 @@ export function Map({ onLoad }: { onLoad?: (state: Earthquakes) => void }) {
       // Terrain: visualisation only, never a measurement — see basemap.ts.
       m.setTerrain({ source: 'terrain', exaggeration: 1.4 })
       addEarthquakeLayers(m)
+      addProfileLayers(m)
+      setReady(true)
       void load()
     })
 
@@ -79,6 +104,20 @@ export function Map({ onLoad }: { onLoad?: (state: Earthquakes) => void }) {
     }
 
     m.on('moveend', () => void load())
+
+    // Two clicks make a section: the first sets one end, the second the other.
+    let pending: [number, number] | null = null
+    m.on('click', (e) => {
+      if (!drawState.current.drawing) return
+      const point: [number, number] = [e.lngLat.lng, e.lngLat.lat]
+      if (pending === null) {
+        pending = point
+        setProfile(m, point, null, 0)
+      } else {
+        drawState.current.onProfile?.({ from: pending, to: point })
+        pending = null
+      }
+    })
     return () => {
       inFlight?.abort()
       m.remove()
@@ -86,9 +125,19 @@ export function Map({ onLoad }: { onLoad?: (state: Earthquakes) => void }) {
     }
   }, [onLoad])
 
+  // Drawn whenever the section changes, without rebuilding the map.
+  useEffect(() => {
+    const m = map.current
+    if (!m || !ready) return
+    setProfile(m, profile?.from ?? null, profile?.to ?? null, widthMetres ?? 5000)
+  }, [profile, widthMetres, ready])
+
   return (
     <>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} />
+      <div
+        ref={container}
+        style={{ position: 'absolute', inset: 0, cursor: drawing ? 'crosshair' : undefined }}
+      />
       {error && <div className="noma-error">Could not load earthquakes — {error}</div>}
     </>
   )

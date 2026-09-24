@@ -35,3 +35,96 @@
   background: #7a1f1f;
   color: #fff;
 }
+
+/* The one thing you can ask for, and the way back. */
+.noma-ask {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  left: 0.75rem;
+}
+
+.noma-ask button {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  font: inherit;
+  color: #222;
+  cursor: pointer;
+}
+
+.noma-section-panel {
+  position: absolute;
+  z-index: 2;
+  right: 0.75rem;
+  bottom: 2.2rem;
+  left: 0.75rem;
+  /* The map stays the primary interface (CLAUDE.md, "map first"), so the chart is capped rather
+     than the panel — capping the panel clipped the caption, which is where the section says how
+     many of its depths have no stated uncertainty. That sentence must never be the thing that
+     gets cut off. */
+  padding: 0.5rem 0.5rem 0.25rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 18px rgba(0, 0, 0, 0.12);
+}
+
+.noma-section {
+  margin: 0;
+}
+
+.noma-section svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* No max-height: with width 100% and a viewBox, a height cap CROPS the chart rather than
+     scaling it, and what gets cropped is the bottom — the depth axis. The viewBox is a wide
+     5.3:1 instead, which keeps the panel to roughly a quarter of the window on its own. */
+}
+
+/* Sea level is a datum, not a claim — so it is drawn plainly and the grid below it is fainter. */
+.noma-section-datum {
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 1;
+}
+
+.noma-section-grid {
+  stroke: rgba(0, 0, 0, 0.08);
+  stroke-width: 1;
+}
+
+.noma-section-axes {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.1rem 0.25rem 0 3.2rem;
+  font-size: 10px;
+  color: #6a6a6a;
+}
+
+.noma-section-tick,
+.noma-section-axis {
+  font-size: 10px;
+  fill: #6a6a6a;
+}
+
+.noma-section-tick {
+  text-anchor: end;
+}
+
+/* A stated depth uncertainty, drawn to scale. Never a default length. */
+.noma-section-whisker {
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 1;
+}
+
+.noma-section-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.15rem 0.25rem 0.35rem;
+  font-size: 12px;
+  color: #555;
+}
