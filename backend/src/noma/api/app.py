@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from noma.api.earthquakes import router as earthquakes
+from noma.api.section import router as section
 from noma.settings import settings
 
 app = FastAPI(
@@ -27,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(earthquakes)
+app.include_router(section)
 
 
 @app.get("/health", tags=["meta"])

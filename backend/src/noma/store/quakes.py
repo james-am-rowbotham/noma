@@ -579,3 +579,118 @@ def load_sources(connection: Connection, ids: Sequence[str]) -> list[Source]:
         {"ids": list(ids)},
     ).mappings()
     return [Source.model_validate(dict(r)) for r in rows]
+
+
+# ── a slice through the volcano ──────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class OnProfile:
+    """One earthquake projected onto a vertical slice: how far along the line it sits, how far off
+    it is, and how deep. Distances in METRES."""
+
+    along_m: float
+    offset_m: float
+    event: Event
+    origin: Origin
+    magnitude: Magnitude | None
+
+
+#: Project hypocentres onto a line, the way a volcano-seismology paper draws a section.
+#:
+#: ST_LineLocatePoint works on GEOMETRY and returns a fraction of the line; lengths and distances
+#: are asked of GEOGRAPHY so they come back in METRES (ADR-0004). Mixing those up would give a
+#: section measured in degrees.
+#:
+#: DISTINCT ON keeps one version per record — without it a revised earthquake appears twice on the
+#: section, at slightly different depths, looking like two earthquakes (domain-model point 19).
+_PROFILE = """
+WITH line AS (
+    SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(:from_lon, :from_lat), 4326),
+                       ST_SetSRID(ST_MakePoint(:to_lon, :to_lat), 4326)) AS g
+), e AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_event
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+), o AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_origin
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+), m AS (
+    SELECT DISTINCT ON (source_id, public_id) * FROM quake_magnitude
+    WHERE retrieved_at <= :as_of ORDER BY source_id, public_id, retrieved_at DESC
+)
+SELECT
+    e.public_id AS event_public_id,
+    ST_LineLocatePoint(line.g, o.point::geometry) * ST_Length(line.g::geography) AS along_m,
+    ST_Distance(o.point, line.g::geography) AS offset_m,
+    to_jsonb(e) AS event, to_jsonb(o) AS origin, to_jsonb(m) AS magnitude
+FROM e
+JOIN o ON o.event_id = e.id AND o.public_id = e.preferred_origin_public_id
+LEFT JOIN m ON m.event_id = e.id AND m.public_id = e.preferred_magnitude_public_id
+CROSS JOIN line
+WHERE ST_DWithin(o.point, line.g::geography, :width_m)
+  AND o.time_value >= :start AND o.time_value <= :end
+  AND (CAST(:min_magnitude AS double precision) IS NULL OR m.mag >= :min_magnitude)
+ORDER BY along_m
+LIMIT :limit
+"""
+
+
+def profile_length_m(connection: Connection, line: tuple[float, float, float, float]) -> float:
+    from_lon, from_lat, to_lon, to_lat = line
+    return connection.execute(
+        text("""
+            SELECT ST_Length(ST_MakeLine(ST_SetSRID(ST_MakePoint(:from_lon, :from_lat), 4326),
+                                         ST_SetSRID(ST_MakePoint(:to_lon, :to_lat), 4326)
+                            )::geography)
+        """),
+        {"from_lon": from_lon, "from_lat": from_lat, "to_lon": to_lon, "to_lat": to_lat},
+    ).scalar_one()
+
+
+def earthquakes_on_profile(
+    connection: Connection,
+    *,
+    from_lon: float,
+    from_lat: float,
+    to_lon: float,
+    to_lat: float,
+    width_m: float,
+    start: datetime,
+    end: datetime,
+    min_magnitude: float | None = None,
+    as_of: datetime | None = None,
+    limit: int = 5000,
+) -> Sequence[OnProfile]:
+    rows = connection.execute(
+        text(_PROFILE),
+        {
+            "from_lon": from_lon,
+            "from_lat": from_lat,
+            "to_lon": to_lon,
+            "to_lat": to_lat,
+            "width_m": width_m,
+            "start": start,
+            "end": end,
+            "min_magnitude": min_magnitude,
+            "as_of": as_of or datetime.now(tz=UTC),
+            "limit": limit,
+        },
+    ).mappings()
+
+    out: list[OnProfile] = []
+    for r in rows:
+        event_public_id = r["event_public_id"]
+        out.append(
+            OnProfile(
+                along_m=r["along_m"],
+                offset_m=r["offset_m"],
+                event=_read_event(_from_jsonb(r["event"], event_public_id)),
+                origin=_read_origin(_from_jsonb(r["origin"], event_public_id)),
+                magnitude=(
+                    _read_magnitude(_from_jsonb(r["magnitude"], event_public_id))
+                    if r["magnitude"]
+                    else None
+                ),
+            )
+        )
+    return out
