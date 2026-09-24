@@ -8,7 +8,7 @@ from typing import Any
 import httpx2 as httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from noma.api.app import app
 from noma.api.earthquakes import connection
@@ -150,3 +150,33 @@ def test_the_window_default_is_a_month():
 
     assert timedelta(days=30) == DEFAULT_WINDOW
     assert datetime.now(tz=UTC) - DEFAULT_WINDOW < datetime.now(tz=UTC)
+
+
+class TestSayingWhoWasAsked:
+    """An empty result says nothing about the ground until you know who was consulted."""
+
+    def test_it_always_says_which_sources_were_asked(self, client: TestClient):
+        # Both answer for Etna, even though only one had this earthquake.
+        assert get(client)["noma"]["asked"] == ["ingv", "usgs"]
+
+    def test_an_empty_result_still_says_who_was_asked(self, client: TestClient):
+        body = get(client, minMagnitude="9")
+        assert body["features"] == []
+        assert body["noma"]["asked"], "an empty map must not look like an empty planet"
+
+    def test_an_area_no_source_answers_for_says_so(self, client: TestClient, db: Engine):
+        # Not "no earthquakes" — nobody to ask. The two mean opposite things.
+        with db.connect() as conn:
+            conn.execute(text("UPDATE source SET region = NULL"))
+            conn.commit()
+        try:
+            body = get(client)
+            assert body["noma"]["asked"] == []
+            assert body["noma"]["coverage"] == "no source answers for this area"
+        finally:
+            with db.connect() as conn:
+                conn.execute(
+                    text("UPDATE source SET region = ST_GeomFromText(:w, 4326)"),
+                    {"w": "POLYGON((-180 -90,180 -90,180 90,-180 90,-180 -90))"},
+                )
+                conn.commit()

@@ -17,6 +17,7 @@ export default function App() {
   const unreported = state?.features.filter(
     (f) => (f.properties?.magnitude as { uncertainty: number | null } | null)?.uncertainty == null,
   ).length
+  const asked = state?.noma.asked ?? []
 
   return (
     <main className="noma">
@@ -26,6 +27,17 @@ export default function App() {
           <span>
             {count} {count === 1 ? 'earthquake' : 'earthquakes'}
           </span>
+          {/* WHO WAS ASKED, whenever there is nothing to show. Sakurajima is among the most active
+              volcanoes on Earth, and Noma currently has no source for Japan — so a bare "0
+              earthquakes" there would read as a claim about the volcano when it is a fact about
+              Noma. "Nobody to ask" and "asked, and there were none" are different, and neither is
+              "the volcano is quiet". */}
+          {count === 0 &&
+            (asked.length === 0 ? (
+              <span>no source covers this area — Noma has nobody to ask here</span>
+            ) : (
+              <span>none recorded by {asked.map((s) => s.toUpperCase()).join(', ')}</span>
+            ))}
           {/* Uncertainty is always shown, including when it was NOT reported — because 3.9 alone
               looks exactly as precise as 3.9 ± 0.0 (CLAUDE.md). Said quietly, never louder than
               the values themselves. */}

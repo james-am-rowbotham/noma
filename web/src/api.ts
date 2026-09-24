@@ -40,7 +40,13 @@ export interface Attribution {
 
 export interface Earthquakes extends FeatureCollection {
   attribution: Attribution[]
-  noma: { fetched: boolean; coverage: string }
+  noma: {
+    fetched: boolean
+    coverage: string
+    /** Which sources were consulted — always, not only those that had something. An empty result
+     *  says nothing about the ground until you know who was asked. */
+    asked: string[]
+  }
 }
 
 const BASE = import.meta.env.VITE_API ?? 'http://localhost:8000'

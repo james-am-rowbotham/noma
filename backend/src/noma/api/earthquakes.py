@@ -97,7 +97,16 @@ def earthquakes(
             {"source": s.id, "name": s.name, "licence": s.licence}
             for s in load_sources(conn, contributing)
         ],
-        "noma": {"fetched": coverage.fetched, "coverage": coverage.reason},
+        # WHO WAS ASKED, always — not only who answered. An empty result says nothing about the
+        # ground until you know who was consulted: USGS answers for the whole world but carries
+        # none of Japan's small volcanic earthquakes, so "0 earthquakes, asked USGS" at Sakurajima
+        # is a statement about Noma's sources, and a bare "0 earthquakes" would be a false
+        # statement about one of the most active volcanoes on Earth.
+        "noma": {
+            "fetched": coverage.fetched,
+            "coverage": coverage.reason,
+            "asked": [s.source_id for s in coverage.sources],
+        },
     }
 
 

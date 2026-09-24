@@ -227,6 +227,24 @@ window around Etna: INGV 58 events, USGS 1 — and that one is the same earthqua
 as M3.9 at 10:24:08.910 "7 km W Linguaglossa" and by USGS as M3.6 at 10:24:10.174 "1 km NE of
 Sant'Alfio".
 
+**22. Noma says who it asked, always — not only who answered.** (2026-09-24, proposed) An empty
+result says nothing about the ground until you know who was consulted.
+
+Found by flying the map to Sakurajima, one of the most active volcanoes on Earth, and reading
+**"0 earthquakes"**. It was true — Noma holds none — but it reads as a claim about the volcano when
+it is a fact about Noma's sources. USGS answers for the whole world and carries none of Japan's
+small volcanic earthquakes (measured: zero events in the Sakurajima box over a whole year), and
+Japan's own agency does not serve the FDSN standard at the addresses tried.
+
+So the API returns the sources asked on every response, and the map distinguishes three states that
+look identical and mean different things: *this many earthquakes*, *none recorded by the sources we
+asked*, and *no source covers this area — nobody to ask*.
+
+This also exposes a limit of point 21: a source's region is treated as all-or-nothing, and
+completeness is not. USGS is complete worldwide only for larger events, and for small ones only over
+its own networks. A region with a completeness threshold would be the honest model; saying who was
+asked is the cheap half of it, and is owed regardless.
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the

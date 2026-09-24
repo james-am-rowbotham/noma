@@ -1,0 +1,5 @@
+{"type":"FeatureCollection","features":[
+ {"type":"Feature","properties":{"name":"etna"},"geometry":{"type":"Polygon","coordinates":[[[14.7,37.4],[15.4,37.4],[15.4,38.0],[14.7,38.0],[14.7,37.4]]]}},
+ {"type":"Feature","properties":{"name":"kilauea"},"geometry":{"type":"Polygon","coordinates":[[[-155.6,19.1],[-154.9,19.1],[-154.9,19.7],[-155.6,19.7],[-155.6,19.1]]]}},
+ {"type":"Feature","properties":{"name":"sakurajima"},"geometry":{"type":"Polygon","coordinates":[[[130.4,31.3],[131.0,31.3],[131.0,31.8],[130.4,31.8],[130.4,31.3]]]}}
+]}

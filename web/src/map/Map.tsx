@@ -17,7 +17,12 @@ import { addEarthquakeLayers, setEarthquakes } from './earthquakes'
 // (CLAUDE.md, "map first"), most of what it does is imperative, and a wrapper would mostly be
 // something to fight. One useEffect owns the map's whole life.
 
-const ETNA: { center: [number, number]; zoom: number } = { center: [14.999, 37.751], zoom: 10.5 }
+// Where Noma opens. One basemap file covers every region in web/scripts/regions.geojson, so
+// flying to another volcano needs no change here — only that its polygon is in that file.
+const OPENS_AT: { center: [number, number]; zoom: number } = {
+  center: [14.999, 37.751],
+  zoom: 10.5,
+}
 
 /* biome-ignore lint/suspicious/noShadowRestrictedNames: named Map on purpose — the map IS the
    interface (CLAUDE.md, "map first"). Where MapLibre's own Map class is needed alongside it,
@@ -36,8 +41,8 @@ export function Map({ onLoad }: { onLoad?: (state: Earthquakes) => void }) {
 
     const m = new maplibregl.Map({
       container: container.current,
-      style: basemapStyle(`${window.location.origin}/tiles/etna.pmtiles`),
-      ...ETNA,
+      style: basemapStyle(`${window.location.origin}/tiles/volcanoes.pmtiles`),
+      ...OPENS_AT,
       maxPitch: 75,
       attributionControl: { compact: false },
     })
