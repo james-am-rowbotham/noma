@@ -5,8 +5,10 @@ Interactive docs:   http://localhost:8000/docs
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from noma.api.earthquakes import router as earthquakes
+from noma.settings import settings
 
 app = FastAPI(
     title="Noma",
@@ -14,6 +16,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
+
+# The browser is served from a different port in development and will be a different origin in
+# production, so it needs explicit permission. Named origins, never "*".
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings().allowed_origins,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 app.include_router(earthquakes)
 

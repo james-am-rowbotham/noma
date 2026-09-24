@@ -1,25 +1,28 @@
 """Fetching because someone looked, rather than on a schedule.
 
-Someone looks at an area and a time window; Noma makes sure it has that area and window, fetching
-only what it has not already got. Nothing runs when nobody is using Noma.
+Someone looks at an area and a time window; Noma asks every source that answers for that ground,
+and only for what it does not already hold. Nothing runs when nobody is using Noma.
+
+WHICH SOURCE ANSWERS FOR WHERE is a row in the `source` table, not a constant here. Before that was
+true, Noma asked INGV about everywhere — and INGV answers HTTP 204 for Hawaii, which Noma read as
+"the catalogue is genuinely empty", recorded, and never asked again. A confident empty map over
+Kilauea, with no error.
 
 WHAT THIS GIVES UP, stated plainly: revisions that happen while nobody is looking are lost for
 good. An agency's service only ever reports what its catalogue says NOW — there is no way to ask
-INGV what it said at 03:00. So a detection published automatically at 03:00 and reviewed at 03:20,
-with nobody watching, leaves only the reviewed version obtainable. For settled historical data that
-costs nothing. It would matter for watching a volcano through unrest, and the answer then is to add
-a standing watch on this same machinery, not to change it.
+INGV what it said at 03:00. For settled historical data that costs nothing. It would matter for
+watching a volcano through unrest, and the answer then is a standing watch on this same machinery.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Connection, text
 
-from noma.adapters.ingv import INGV_EVENT_SERVICE, event_query, fetch_events
+from noma.adapters.fdsnws import event_query, fetch_events
 from noma.adapters.quakeml import ParsedQuakeML
 from noma.domain.quake import SourceId
-from noma.ingest import INGV, store
+from noma.ingest import store
 
 #: How recently an area covering the PRESENT must have been fetched to be trusted without asking
 #: again. Short, because a catalogue revises fastest just after an earthquake.
@@ -29,7 +32,7 @@ LIVE_MAX_AGE = timedelta(minutes=5)
 #: settled and a fetch covering it never needs repeating.
 #:
 #: SEVEN DAYS IS A GUESS, and it is the one number here without evidence behind it. It can be
-#: measured rather than guessed: ask INGV with `updatedafter` over a period and see how old the
+#: measured rather than guessed: ask an agency with `updatedafter` over a period and see how old the
 #: events it returns are. Until that is done, this is deliberately generous.
 SETTLED_AFTER = timedelta(days=7)
 
@@ -51,12 +54,31 @@ class Area:
 
 
 @dataclass(frozen=True)
-class Coverage:
-    """What Noma did about a request: whether it had to ask, and what it now holds."""
+class SourceCoverage:
+    """What Noma did about one source for one request."""
 
+    source_id: SourceId
     fetched: bool
     reason: str
     stored: ParsedQuakeML | None = None
+
+
+@dataclass(frozen=True)
+class Coverage:
+    """What Noma did about a request, across every source that answers for the area."""
+
+    sources: list[SourceCoverage] = field(default_factory=list[SourceCoverage])
+
+    @property
+    def fetched(self) -> bool:
+        return any(s.fetched for s in self.sources)
+
+    @property
+    def reason(self) -> str:
+        if not self.sources:
+            # Not an error, and not "empty": nobody has told Noma who to ask about this ground.
+            return "no source answers for this area"
+        return "; ".join(f"{s.source_id}: {s.reason}" for s in self.sources)
 
 
 def ensure_events(
@@ -68,17 +90,52 @@ def ensure_events(
     min_magnitude: float | None = None,
     now: datetime | None = None,
 ) -> Coverage:
-    """Make sure Noma holds this agency's earthquakes for this area and window."""
+    """Make sure Noma holds this area and window, from every source that answers for it."""
     now = now or datetime.now(tz=UTC)
     if end <= start:
         raise ValueError("the window ends before it starts")
 
-    covered = _already_covered(connection, area, start, end, min_magnitude, now)
+    out = Coverage()
+    for source_id, service_url in _sources_for(connection, area):
+        out.sources.append(
+            _ensure_from(connection, source_id, service_url, area, start, end, min_magnitude, now)
+        )
+    return out
+
+
+def _sources_for(connection: Connection, area: Area) -> list[tuple[SourceId, str]]:
+    """Every source whose region covers the WHOLE area asked about. A source covering only part of
+    the view is left out rather than half-answering: a partial answer drawn on a map looks exactly
+    like a complete one."""
+    rows = connection.execute(
+        text("""
+            SELECT id, event_service_url FROM source
+            WHERE event_service_url IS NOT NULL
+              AND region IS NOT NULL
+              AND ST_Covers(region, ST_GeomFromText(:area, 4326))
+            ORDER BY id
+        """),
+        {"area": area.as_wkt()},
+    ).all()
+    return [(SourceId(r.id), r.event_service_url) for r in rows]
+
+
+def _ensure_from(
+    connection: Connection,
+    source_id: SourceId,
+    service_url: str,
+    area: Area,
+    start: datetime,
+    end: datetime,
+    min_magnitude: float | None,
+    now: datetime,
+) -> SourceCoverage:
+    covered = _already_covered(connection, source_id, area, start, end, min_magnitude, now)
     if covered:
-        return Coverage(fetched=False, reason=covered)
+        return SourceCoverage(source_id=source_id, fetched=False, reason=covered)
 
     url = event_query(
-        INGV_EVENT_SERVICE,
+        service_url,
         starttime=start,
         endtime=end,
         minlongitude=area.min_longitude,
@@ -89,40 +146,50 @@ def ensure_events(
     )
     fetched = fetch_events(url)
     if fetched is None:
-        # Asked, and the catalogue was empty. Recorded so an empty area is not asked about again.
-        _record(connection, area, start, end, min_magnitude, str(url), now, found=0, document=None)
-        return Coverage(fetched=True, reason="fetched; the catalogue had nothing")
+        # Asked, and this agency's catalogue was empty. Recorded so it is not asked again — which
+        # is only safe because the agency was asked about ground it answers for.
+        _record(connection, source_id, area, start, end, min_magnitude, str(url), now, 0, None)
+        return SourceCoverage(
+            source_id=source_id, fetched=True, reason="fetched; the catalogue had nothing"
+        )
 
-    stored = store(connection, fetched)
+    stored = store(connection, fetched, source_id=source_id)
     document_id = (
         stored.origins[0].envelope.raw if stored.origins else stored.events[0].envelope.raw
     )
     _record(
         connection,
+        source_id,
         area,
         start,
         end,
         min_magnitude,
         fetched.request_url,
         now,
-        found=len(stored.events),
-        document=document_id,
+        len(stored.events),
+        document_id,
     )
-    return Coverage(fetched=True, reason=f"fetched {len(stored.events)} events", stored=stored)
+    return SourceCoverage(
+        source_id=source_id,
+        fetched=True,
+        reason=f"fetched {len(stored.events)} events",
+        stored=stored,
+    )
 
 
 def _already_covered(
     connection: Connection,
+    source_id: SourceId,
     area: Area,
     start: datetime,
     end: datetime,
     min_magnitude: float | None,
     now: datetime,
 ) -> str | None:
-    """A previous fetch counts only if it covers the whole area AND the whole window, was no more
-    filtered than this request, and is still fresh. No gap arithmetic: a partly-covering fetch is
-    ignored and the request is made again, which is cheap because re-ingesting identical records
-    conflicts and does nothing (domain-model point 19)."""
+    """A previous fetch counts only if it was FROM THIS SOURCE and covers the whole area and window,
+    was no more filtered than this request, and is still fresh. No gap arithmetic: a partly-covering
+    fetch is ignored and the request is made again, which is cheap because re-ingesting identical
+    records conflicts and does nothing (domain-model point 19)."""
     settled = end <= now - SETTLED_AFTER
     row = connection.execute(
         text("""
@@ -130,7 +197,6 @@ def _already_covered(
             WHERE source_id = :source_id
               AND ST_Covers(area, ST_GeomFromText(:area, 4326))
               AND window_start <= :start AND window_end >= :end
-              -- A fetch filtered to M2+ cannot satisfy a request for everything.
               -- Casts are explicit: a parameter compared only against NULL gives Postgres nothing
               -- to infer a type from, and it refuses rather than guessing.
               AND (min_magnitude IS NULL
@@ -140,7 +206,7 @@ def _already_covered(
             LIMIT 1
         """),
         {
-            "source_id": INGV.id,
+            "source_id": source_id,
             "area": area.as_wkt(),
             "start": start,
             "end": end,
@@ -157,13 +223,13 @@ def _already_covered(
 
 def _record(
     connection: Connection,
+    source_id: SourceId,
     area: Area,
     start: datetime,
     end: datetime,
     min_magnitude: float | None,
     request_url: str,
     now: datetime,
-    *,
     found: int,
     document: str | None,
 ) -> None:
@@ -175,7 +241,7 @@ def _record(
                     :min_magnitude, :found, :request_url, :document)
         """),
         {
-            "source_id": SourceId(INGV.id),
+            "source_id": source_id,
             "fetched_at": now,
             "area": area.as_wkt(),
             "start": start,

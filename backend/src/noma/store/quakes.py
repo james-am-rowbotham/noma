@@ -567,3 +567,15 @@ def earthquakes_in(
             )
         )
     return out
+
+
+def load_sources(connection: Connection, ids: Sequence[str]) -> list[Source]:
+    """The sources behind a set of records, for attribution. Licences are a legal obligation, not
+    decoration (domain-model point 13), so this is read from the same rows the data came from."""
+    if not ids:
+        return []
+    rows = connection.execute(
+        text("SELECT id, name, ror_id, licence FROM source WHERE id = ANY(:ids) ORDER BY id"),
+        {"ids": list(ids)},
+    ).mappings()
+    return [Source.model_validate(dict(r)) for r in rows]

@@ -10,8 +10,6 @@ import pytest
 from sqlalchemy import Connection, Engine, text
 
 from noma.coverage import LIVE_MAX_AGE, SETTLED_AFTER, Area, ensure_events
-from noma.ingest import INGV
-from noma.store.quakes import save_source
 from tests.conftest import ETNA
 
 pytestmark = pytest.mark.db
@@ -34,9 +32,10 @@ LAST_YEAR: Window = {"start": NOW - timedelta(days=365), "end": NOW - timedelta(
 
 @pytest.fixture
 def conn(db: Engine):
+    # Sources are seeded by a migration, so nothing is registered here: which agency answers for
+    # where is data, not test setup.
     with db.connect() as connection:
         transaction = connection.begin()
-        save_source(connection, INGV)
         yield connection
         transaction.rollback()
 
@@ -57,8 +56,8 @@ def agency(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 def test_looking_at_an_area_fetches_it(conn: Connection, agency: list[str]):
     result = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     assert result.fetched
-    assert len(agency) == 1
-    assert conn.execute(text("SELECT count(*) FROM quake_event")).scalar_one() == 1
+    assert len(agency) == 2, "INGV answers for Italy, USGS worldwide — both are asked"
+    assert conn.execute(text("SELECT count(*) FROM quake_event")).scalar_one() == 2
 
 
 def test_looking_again_at_a_settled_window_asks_nothing(conn: Connection, agency: list[str]):
@@ -66,7 +65,7 @@ def test_looking_again_at_a_settled_window_asks_nothing(conn: Connection, agency
     again = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW + timedelta(days=200))
     assert not again.fetched
     assert "settled" in again.reason
-    assert len(agency) == 1, "a window that ended long ago does not change"
+    assert len(agency) == 2, "a window that ended long ago does not change"
 
 
 def test_zooming_in_asks_nothing(conn: Connection, agency: list[str]):
@@ -74,14 +73,14 @@ def test_zooming_in_asks_nothing(conn: Connection, agency: list[str]):
     ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     zoomed = ensure_events(conn, INSIDE, **LAST_YEAR, now=NOW)
     assert not zoomed.fetched
-    assert len(agency) == 1
+    assert len(agency) == 2
 
 
 def test_zooming_out_does_ask(conn: Connection, agency: list[str]):
     ensure_events(conn, INSIDE, **LAST_YEAR, now=NOW)
     wider = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     assert wider.fetched, "the larger area was never covered"
-    assert len(agency) == 2
+    assert len(agency) == 4
 
 
 def test_a_window_touching_now_is_rechecked(conn: Connection, agency: list[str]):
@@ -89,7 +88,7 @@ def test_a_window_touching_now_is_rechecked(conn: Connection, agency: list[str])
     ensure_events(conn, ETNA_AREA, **live, now=NOW)
     soon = ensure_events(conn, ETNA_AREA, **live, now=NOW + LIVE_MAX_AGE + timedelta(seconds=1))
     assert soon.fetched, "recent earthquakes are still being revised"
-    assert len(agency) == 2
+    assert len(agency) == 4
 
 
 def test_a_window_touching_now_is_not_rechecked_immediately(conn: Connection, agency: list[str]):
@@ -97,7 +96,7 @@ def test_a_window_touching_now_is_not_rechecked_immediately(conn: Connection, ag
     ensure_events(conn, ETNA_AREA, **live, now=NOW)
     again = ensure_events(conn, ETNA_AREA, **live, now=NOW + timedelta(minutes=1))
     assert not again.fetched
-    assert len(agency) == 1
+    assert len(agency) == 2
 
 
 def test_a_filtered_fetch_does_not_satisfy_an_unfiltered_look(conn: Connection, agency: list[str]):
@@ -105,14 +104,14 @@ def test_a_filtered_fetch_does_not_satisfy_an_unfiltered_look(conn: Connection, 
     ensure_events(conn, ETNA_AREA, **LAST_YEAR, min_magnitude=2.0, now=NOW)
     everything = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     assert everything.fetched
-    assert len(agency) == 2
+    assert len(agency) == 4
 
 
 def test_an_unfiltered_fetch_satisfies_a_filtered_look(conn: Connection, agency: list[str]):
     ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     filtered = ensure_events(conn, ETNA_AREA, **LAST_YEAR, min_magnitude=2.0, now=NOW)
     assert not filtered.fetched, "Noma already holds everything, including the big ones"
-    assert len(agency) == 1
+    assert len(agency) == 2
 
 
 def test_an_empty_area_is_not_asked_about_twice(conn: Connection, monkeypatch: pytest.MonkeyPatch):
@@ -126,12 +125,51 @@ def test_an_empty_area_is_not_asked_about_twice(conn: Connection, monkeypatch: p
     first = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     second = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
     assert first.fetched and not second.fetched
-    assert len(asked) == 1, "asked and empty is not the same as never asked"
+    assert len(asked) == 2, "asked and empty is not the same as never asked"
 
 
 def test_a_backwards_window_is_refused(conn: Connection):
     with pytest.raises(ValueError, match="ends before it starts"):
         ensure_events(conn, ETNA_AREA, start=NOW, end=NOW - timedelta(days=1), now=NOW)
+
+
+class TestWhoAnswersForWhere:
+    """The bug this fixes: Noma asked INGV about everywhere. INGV answers 204 for Hawaii — it runs
+    Italy's network — and Noma recorded that as "the catalogue is genuinely empty" and never asked
+    again. A confident empty map over Kilauea, with no error at all."""
+
+    KILAUEA = Area(min_longitude=-155.5, min_latitude=19.2, max_longitude=-155.0, max_latitude=19.6)
+
+    def test_italys_agency_is_not_asked_about_hawaii(self, conn: Connection, agency: list[str]):
+        ensure_events(conn, self.KILAUEA, **LAST_YEAR, now=NOW)
+        assert not any("ingv.it" in url for url in agency)
+
+    def test_hawaii_is_answered_by_the_source_that_covers_it(
+        self, conn: Connection, agency: list[str]
+    ):
+        coverage = ensure_events(conn, self.KILAUEA, **LAST_YEAR, now=NOW)
+        assert [s.source_id for s in coverage.sources] == ["usgs"]
+        assert len(agency) == 1
+        assert "earthquake.usgs.gov" in agency[0]
+
+    def test_etna_is_answered_by_both(self, conn: Connection, agency: list[str]):
+        # Domain-model point 10: an agency's event stays that agency's event. Measured the day this
+        # was written, for one box and window: INGV 58 events, USGS 1 — and that one was the same
+        # earthquake, at a different time, magnitude and place name.
+        coverage = ensure_events(conn, ETNA_AREA, **LAST_YEAR, now=NOW)
+        assert [s.source_id for s in coverage.sources] == ["ingv", "usgs"]
+
+    def test_somewhere_nobody_answers_for_is_not_silently_empty(self, conn: Connection):
+        # A region no source covers must not look like a region with no earthquakes.
+        nowhere = Area(
+            min_longitude=100.0, min_latitude=-80.0, max_longitude=100.5, max_latitude=-79.5
+        )
+        # USGS covers the world, so to test "no source" the region must be outside every source.
+        conn.execute(text("UPDATE source SET region = NULL WHERE id = 'usgs'"))
+        coverage = ensure_events(conn, nowhere, **LAST_YEAR, now=NOW)
+        assert coverage.sources == []
+        assert not coverage.fetched
+        assert coverage.reason == "no source answers for this area"
 
 
 def test_the_settled_threshold_is_declared_not_hidden():

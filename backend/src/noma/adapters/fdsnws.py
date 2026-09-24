@@ -1,8 +1,8 @@
-"""INGV's earthquake catalogue, over the FDSN event web service.
+"""Earthquake catalogues, over the FDSN event web service.
 
-INGV — Istituto Nazionale di Geofisica e Vulcanologia — runs Italy's seismic network, including
-Etna's. It serves fdsnws-event 1.2, the standard every seismic agency serves, so almost all of this
-module is the STANDARD rather than INGV: pointing it at USGS is a different base URL.
+fdsnws-event 1.2 is the standard every seismic agency serves, so nothing here is specific to one of
+them: which agency to ask, and where it answers for, are rows in the `source` table. Verified by
+pointing this unchanged at USGS and parsing five Kilauea earthquakes.
 
 Three things measured on 2026-09-18 and worth knowing before changing anything here
 (docs/research/standards.md):
@@ -20,14 +20,9 @@ from datetime import UTC, datetime
 
 import httpx2 as httpx
 
-# fdsnws-event 1.2, https://www.fdsn.org/webservices/ — the path is the standard's, not INGV's.
-INGV_EVENT_SERVICE = "https://webservices.ingv.it/fdsnws/event/1/query"
-
-# INGV publishes its catalogue under CC BY 4.0, so attribution is a legal requirement rather than a
-# courtesy (docs/research/standards.md). Stored on the source, which governs what Noma may re-serve.
-INGV_LICENCE = "CC-BY-4.0"
-INGV_NAME = "Istituto Nazionale di Geofisica e Vulcanologia"
-INGV_ROR = "https://ror.org/00qps9a02"
+#: The path every agency serves it at. Only the host differs, which is why it lives in the
+#: database rather than here: https://www.fdsn.org/webservices/
+EVENT_SERVICE_PATH = "/fdsnws/event/1/query"
 
 
 class CatalogueError(RuntimeError):
@@ -45,7 +40,7 @@ class Fetched:
 
 
 def event_query(
-    base_url: str = INGV_EVENT_SERVICE,
+    base_url: str,
     *,
     starttime: datetime | None = None,
     endtime: datetime | None = None,

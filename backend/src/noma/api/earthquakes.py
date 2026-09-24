@@ -23,8 +23,7 @@ from sqlalchemy import Connection
 from noma.coverage import Area, ensure_events
 from noma.db import engine
 from noma.domain.quake import Magnitude, Origin
-from noma.ingest import INGV
-from noma.store.quakes import EarthquakeSummary, earthquakes_in
+from noma.store.quakes import EarthquakeSummary, earthquakes_in, load_sources
 
 router = APIRouter(tags=["earthquakes"])
 
@@ -87,12 +86,17 @@ def earthquakes(
         end=end,
         min_magnitude=min_magnitude,
     )
+    # Attribution for the sources that actually contributed a feature. INGV's data is CC BY 4.0,
+    # so this is a legal requirement, and it travels with the data rather than living in a footer
+    # somebody may forget (domain-model point 13).
+    contributing = sorted({e.origin.envelope.source_id for e in found})
     return {
         "type": "FeatureCollection",
         "features": [_feature(e) for e in found],
-        # INGV's data is CC BY 4.0, so attribution is a legal requirement and travels with the
-        # data rather than living in a footer somebody may forget (domain-model point 13).
-        "attribution": [{"source": INGV.id, "name": INGV.name, "licence": INGV.licence}],
+        "attribution": [
+            {"source": s.id, "name": s.name, "licence": s.licence}
+            for s in load_sources(conn, contributing)
+        ],
         "noma": {"fetched": coverage.fetched, "coverage": coverage.reason},
     }
 

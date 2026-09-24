@@ -12,8 +12,6 @@ from sqlalchemy import Engine
 
 from noma.api.app import app
 from noma.api.earthquakes import connection
-from noma.ingest import INGV
-from noma.store.quakes import save_source
 from tests.conftest import ETNA
 
 pytestmark = pytest.mark.db
@@ -29,15 +27,20 @@ WINDOW = {
 
 @pytest.fixture
 def client(db: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    def respond(_url: object, **_kwargs: object) -> httpx.Response:
-        return httpx.Response(200, headers={"content-type": "application/xml"}, content=XML)
+    def respond(url: object, **_kwargs: object) -> httpx.Response:
+        # Both INGV and USGS answer for Etna, so both are asked. Only INGV has this earthquake —
+        # which is close to the real split: for one box and window, INGV returned 58 events and
+        # USGS 1. Answering as whichever agency was asked keeps these tests about the endpoint.
+        if "ingv.it" in str(url):
+            return httpx.Response(200, headers={"content-type": "application/xml"}, content=XML)
+        return httpx.Response(204)
 
     monkeypatch.setattr(httpx, "get", respond)
 
     def rollback_after_each_request() -> Iterator[Any]:
+        # Sources come from the migration that seeds them; nothing is registered here.
         with db.connect() as conn:
             transaction = conn.begin()
-            save_source(conn, INGV)
             yield conn
             transaction.rollback()
 
@@ -85,10 +88,12 @@ class TestWhatItReturns:
         assert properties["retrievedAt"] and properties["producedAt"]
 
     def test_the_licence_travels_with_the_data(self, client: TestClient):
-        # CC BY 4.0 makes attribution a legal requirement, not a footer someone may forget.
-        assert get(client)["attribution"] == [
-            {"source": "ingv", "name": INGV.name, "licence": "CC-BY-4.0"}
-        ]
+        # CC BY 4.0 makes attribution a legal requirement, not a footer someone may forget. Only
+        # the sources that actually contributed a feature are listed.
+        attribution = get(client)["attribution"]
+        assert [a["source"] for a in attribution] == ["ingv"]
+        assert attribution[0]["licence"] == "CC-BY-4.0"
+        assert "Istituto Nazionale" in attribution[0]["name"]
 
     def test_it_says_whether_it_had_to_go_and_fetch(self, client: TestClient):
         assert get(client)["noma"]["fetched"] is True

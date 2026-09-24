@@ -15,6 +15,11 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://noma:noma@localhost:5433/noma"
 
+    #: Browser origins allowed to call this API. The local Vite dev server by default; a deployment
+    #: sets NOMA_ALLOWED_ORIGINS to its own. Never "*" — that would let any page on the web read a
+    #: Noma instance through a signed-in person's browser.
+    allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:5174"]
+
 
 @cache
 def settings() -> Settings:
