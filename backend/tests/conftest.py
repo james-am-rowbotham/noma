@@ -21,6 +21,7 @@ REPO = Path(__file__).parents[2]
 BACKEND = REPO / "backend"
 ETNA = REPO / "docs/research/example-quakeml-ingv-etna-2026-08-15.xml"
 QUAKEML_XSD = REPO / "schemas/quakeml/1.2/QuakeML-BED-1.2.xsd"
+ESLN = REPO / "docs/research/example-gnss-ingv-esln.pos"
 
 
 # ── the database ─────────────────────────────────────────────────────────────

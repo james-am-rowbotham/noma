@@ -1,0 +1,44 @@
+INGV ONT GipsyX-2.3 Analysis Center, GIPOS Time Series, https://doi.org/10.13127/gnss/gipos. Reference Frame : IGS20
+Format Version: 1.1.0
+9-character ID: ESLN
+* Original gipos file : ESLN.gdcat 2026:03:18T02:19:23
+Station name  : ESLN
+First Epoch   : 20050914 115500
+Last Epoch    : 20260121 115500
+Release Date  :
+XYZ Reference position : 4883062.950420213 1306068.184378139 3879658.354478204 (IGS20)
+NEU Reference position : 37.69341641197068 14.974329351621876 1775.618061569785 (IGS20/WGS84)
+Start Field Description
+YYYYMMDD      Year, month, day for the given position epoch
+HHMMSS        Hour, minute, second for the given position epoch
+JJJJJ.JJJJJ   Modified Julian day for the given position epoch
+X             X coordinate, Specified Reference Frame, meters
+Y             Y coordinate, Specified Reference Frame, meters
+Z             Z coordinate, Specified Reference Frame, meters
+Sx            Standard deviation of the X position, meters
+Sy            Standard deviation of the Y position, meters
+Sz            Standard deviation of the Z position, meters
+Rxy           Correlation of the X and Y position
+Rxz           Correlation of the X and Z position
+Ryz           Correlation of the Y and Z position
+Nlat          North latitude, WGS-84 ellipsoid, decimal degrees
+Elong         East longitude, WGS-84 ellipsoid, decimal degrees
+Height (Up)   Height relative to WGS-84 ellipsoid, m
+dN            Difference in North component from NEU reference position, meters
+dE            Difference in East component from NEU reference position, meters
+du            Difference in vertical component from NEU reference position, meters
+Se            Standard deviation of dN, meters
+Sn            Standard deviation of dN, meters
+Su            Standard deviation of dN, meters
+Rne           Correlation of dN and dE
+Rnu           Correlation of dN and dU
+Reu           Correlation of dE and dU
+Soln
+End Field Description
+*YYYYMMDD HHMMSS JJJJJ.JJJJ         X             Y             Z            Sx        Sy       Sz     Rxy    Rxz    Ryz           NLat         Elong         Height         dN        dE        dU         Sn       Se       Su      Rne    Rnu    Reu  Soln
+ 20050914 115500 53627.4965  4883062.95042  1306068.18438  3879658.35448  0.00389  0.00150  0.00325  0.659  0.858  0.560      37.6934164120   14.9743293516 1775.61806     0.00000   0.00000   0.00000    0.00109  0.00136  0.00499 -0.135 -0.002  0.013 final
+ 20050915 115500 53628.4965  4883062.94892  1306068.18456  3879658.35019  0.00391  0.00156  0.00321  0.696  0.847  0.608      37.6934163891   14.9743293580 1775.61433    -0.00254   0.00057  -0.00373    0.00109  0.00139  0.00499 -0.089  0.094 -0.034 final
+ 20050916 115500 53629.4965  4883062.94652  1306068.18375  3879658.35083  0.00368  0.00149  0.00303  0.690  0.852  0.596      37.6934164076   14.9743293561 1775.61272    -0.00048   0.00040  -0.00534    0.00104  0.00129  0.00471 -0.121  0.090 -0.029 final
+ 20050917 115500 53630.4965  4883062.94900  1306068.18532  3879658.35490  0.00356  0.00136  0.00295  0.653  0.839  0.561      37.6934164212   14.9743293661 1775.61743     0.00102   0.00128  -0.00063    0.00100  0.00130  0.00453 -0.081 -0.005 -0.009 final
+ 20050918 115500 53631.4965  4883062.94677  1306068.18324  3879658.35140  0.00358  0.00149  0.00301  0.692  0.848  0.602      37.6934164111   14.9743293499 1775.61316    -0.00010  -0.00015  -0.00490    0.00104  0.00129  0.00462 -0.105  0.120  0.009 final
+ 20260121 115500 61061.4965  4883062.78108  1306068.53228  3879658.36660  0.00476  0.00188  0.00389  0.734  0.885  0.682      37.6934169042   14.9743336572 1775.56716     0.05465   0.37985  -0.05090    0.00124  0.00146  0.00614 -0.056  0.144 -0.033 final

@@ -245,6 +245,29 @@ completeness is not. USGS is complete worldwide only for larger events, and for 
 its own networks. A region with a completeness threshold would be the honest model; saying who was
 asked is the cheap half of it, and is owed regardless.
 
+**23. Family 2 is built, and GNSS is its first source.** (2026-09-24) A Station is an instrument
+somewhere; a Datastream is one instrument measuring one property, and is where the UNIT lives; an
+Observation is one reading, and is where the UNCERTAINTY lives, because it differs every time.
+
+Two fields a measurement is meaningless without, both carried on the datastream: the **procedure**
+— for a processed product like a position series, the software and version are the only honest
+answer to "how do you know?" — and the **reference frame**, because "moved 38 cm east" measures
+nothing until you say east relative to what.
+
+First source: INGV's RING network, 1,354 stations, CC BY 4.0 (DOI 10.13127/gnss/gipos). ESLN on
+Etna's southern flank is 6,401 daily epochs from 2005 to 2026, and **every reading states its own
+standard deviation** — better documented than the earthquake catalogues, where fewer than half the
+depths do. Vertical is about five times less certain than horizontal, the same shape as earthquake
+depth being the worst-constrained coordinate.
+
+Observations carry the same fingerprint as events (point 19): re-ingesting the identical file wrote
+0 of 19,203 readings.
+
+**Two things must be said wherever GNSS is shown**, and neither is in the data: most of ESLN's
+38 cm of eastward motion is the tectonic plate carrying Sicily rather than Etna deforming, and
+Etna's summit stations are not openly published — the highest open one sits about 6 km from the
+craters.
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the

@@ -63,8 +63,13 @@ def ingest_quakeml(
     request_url: str | None = None,
 ) -> ParsedQuakeML:
     """Store a QuakeML document and everything Noma reads out of it. Returns what was stored."""
-    document_id = _save_document(
-        connection, document, source_id, retrieved_at, media_type, request_url
+    document_id = save_document(
+        connection,
+        document,
+        source_id=source_id,
+        retrieved_at=retrieved_at,
+        media_type=media_type,
+        request_url=request_url,
     )
     envelope = Envelope(
         provenance=provenance,
@@ -127,14 +132,17 @@ def _event_row_id(connection: Connection, event: Event) -> UUID:
     )
 
 
-def _save_document(
+def save_document(
     connection: Connection,
     document: bytes,
+    *,
     source_id: str,
     retrieved_at: datetime,
     media_type: str,
-    request_url: str | None,
+    request_url: str | None = None,
 ) -> UUID:
+    """The untouched original, kept so nothing Noma did not model is lost (domain-model point 8).
+    Shared by every adapter: earthquakes, position series, and whatever comes next."""
     # The same document fetched twice is stored once; its id is stable, so re-ingesting is safe.
     row = connection.execute(
         text("""
