@@ -4,6 +4,7 @@ title: Base UI for behaviour, and the look is ours
 type: design
 status: accepted
 date: 2026-09-18
+amended-by: DESIGN-0003
 ---
 
 # DESIGN-0001: Base UI for behaviour, and the look is ours

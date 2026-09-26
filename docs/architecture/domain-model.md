@@ -413,3 +413,11 @@ question, and the answer is still no.
 - Is a satellite detection (point 24) a fourth family, or family 2 with the location moved from the
   station to the reading? Answer it when a second source of the same shape arrives — a second
   satellite, or an InSAR scene — and not before, on one example.
+- **What is a system's status, and where does it come from?** The interface
+  ([`../design/explorer.md`](../design/explorer.md)) makes status its primary visual channel —
+  marker colour, the place badge — and no open source publishes one: VONA notices and the ICAO
+  colour code are PDF only, and the Smithsonian catalogue's terms block re-serving. If Noma derives
+  it, Noma is the source and it is INFERRED. Nothing should be coloured by it until that is decided.
+- Is a measurement read out of a publication OBSERVED with a document as its source, or does "a
+  paper says so" need a class of its own? The design draws it as `retrieved`, which under ADR-0005
+  describes the route rather than the kind of claim (DESIGN-0003).

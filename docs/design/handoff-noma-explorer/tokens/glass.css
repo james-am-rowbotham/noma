@@ -1,0 +1,30 @@
+/* Smoked glass — every surface floating over the map. Dark, translucent, heavily blurred so terrain reads through. */
+:root{
+--glass-bg:rgba(18,23,28,0.44); /* @kind color */
+--glass-bg-strong:rgba(18,23,28,0.66); /* @kind color */
+--glass-border:rgba(255,255,255,0.13); /* @kind color */
+--glass-blur:blur(22px) saturate(1.6); /* @kind other */
+--glass-shadow:0 10px 36px rgba(0,0,0,0.32),inset 0 1px 0 rgba(255,255,255,0.09); /* @kind shadow */
+--glass-radius:12px;
+--glass-hover:rgba(255,255,255,0.08); /* @kind color */
+--glass-bubble:rgba(255,255,255,0.13); /* @kind color */
+}
+/* Content colours on glass — theme tokens; .nm-glass maps semantic tokens onto them. */
+:root{
+--glass-text-body:#EEF1F4;--glass-text-muted:#BAC3CB;--glass-text-faint:#8D99A4;
+--glass-ink-1:#EEF1F4;--glass-ink-2:#BAC3CB;--glass-ink-3:#8D99A4;
+--glass-paper-1:#161B20;--glass-paper-2:#1D242B;--glass-paper-3:rgba(255,255,255,0.08);
+--glass-surface-card:rgba(255,255,255,0.07);--glass-surface-inset:rgba(255,255,255,0.07);
+--glass-line-1:rgba(255,255,255,0.12);--glass-line-2:rgba(255,255,255,0.24);
+}
+.nm-glass{
+--text-body:var(--glass-text-body);--text-muted:var(--glass-text-muted);--text-faint:var(--glass-text-faint);
+--ink-1:var(--glass-ink-1);--ink-2:var(--glass-ink-2);--ink-3:var(--glass-ink-3);
+--paper-1:var(--glass-paper-1);--paper-2:var(--glass-paper-2);--paper-3:var(--glass-paper-3);
+--surface-card:var(--glass-surface-card);--surface-inset:var(--glass-surface-inset);
+--line-1:var(--glass-line-1);--line-2:var(--glass-line-2);
+--border-default:var(--glass-line-1);--border-strong:var(--glass-line-2);
+color:var(--text-body);
+}
+.nm-glass-surface{background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
+.nm-glass input::placeholder{color:var(--text-faint)}

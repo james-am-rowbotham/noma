@@ -1,0 +1,23 @@
+:root{
+/* ink */
+--ink-1:#1C1B18;--ink-2:#55524B;--ink-3:#8B867B;
+/* paper */
+--paper-1:#F6F4EF;--paper-2:#FFFFFF;--paper-3:#ECE9E1;
+--line-1:#DEDAD0;--line-2:#C9C4B6;
+/* accent — earthen umber */
+--accent:#6E6A60;--accent-ink:#54514A;--accent-soft:#E8E5DE;
+/* map canvas (dark) */
+--map-ground:#161B20;--map-ground-2:#1D242B;--map-line:#2B343D;--map-ink:#E9EDF1;--map-ink-2:#9AA6B1;
+/* map chrome (theme-aware) */
+--map-page:#0F1317;--map-land-stroke:#303A44;--map-grat:rgba(154,166,177,0.08);--map-mark:#E9EDF1;
+--overlay-rgb:233,237,241; /* @kind other */
+/* status */
+--ok:#3E7C4F;--caution:#A8770F;--alert:#BE3120;
+/* evidence classifications */
+--ev-observed:#3E7C4F;--ev-historical:#75685B;--ev-retrieved:#4E6E82;--ev-calculated:#5E6A46;--ev-modelled:#3A6EA5;--ev-simulated:#6E6A60;--ev-inferred:#8B867B;--ev-forecast:#A8770F;
+/* semantic aliases */
+--surface-page:var(--paper-1);--surface-card:var(--paper-2);--surface-inset:var(--paper-3);
+--text-body:var(--ink-1);--text-muted:var(--ink-2);--text-faint:var(--ink-3);
+--border-default:var(--line-1);--border-strong:var(--line-2);
+--focus-ring:0 0 0 2px var(--paper-1),0 0 0 4px var(--accent);
+}

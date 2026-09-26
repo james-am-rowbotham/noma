@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Noma</title>
+<script>document.documentElement.dataset.theme=localStorage.getItem('noma-theme')||'dark';</script>
+<link rel="stylesheet" href="../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js"></script>
+<script src="image-slot.js"></script>
+<script src="data.js"></script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:var(--map-page)}#root{height:100%}
+@keyframes nmPulse{0%{r:6;opacity:1}100%{r:22;opacity:0}}.nm-pulse{animation:nmPulse 1.8s var(--ease-out) infinite}
+@keyframes nmFade{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}.nm-fadein{animation:nmFade 700ms var(--ease-out)}
+@keyframes nmPuff{0%{transform:translate(-50%,-50%) scale(0.3);opacity:0}15%{opacity:0.7}100%{transform:translate(calc(-50% + var(--wx)),calc(-50% + var(--wy))) scale(2.6);opacity:0}}
+@keyframes nmSlide{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}.nm-slidein{animation:nmSlide 260ms var(--ease-out)}
+@keyframes nmUnfold{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}.nm-unfold{animation:nmUnfold 240ms var(--ease-out)}
+.nm-chips{scrollbar-width:none}.nm-chips::-webkit-scrollbar{display:none}
+.nm-puff{position:absolute;width:70px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(210,208,202,0.75),rgba(180,176,168,0.3) 60%,transparent);filter:blur(6px);animation:nmPuff 6.6s linear infinite;opacity:0}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel" src="streams.jsx"></script>
+<script type="text/babel" src="chat.jsx"></script>
+<script type="text/babel" src="world-view.jsx"></script>
+<script type="text/babel" src="detail-view.jsx"></script>
+<script type="text/babel">
+const {Toast:AppToast}=window.NomaDesignSystem_02438c;
+function App(){
+const E=window.NOMA_DATA.events;
+const [ev,setEv]=React.useState(()=>{const id=localStorage.getItem('noma-open');return E.find(e=>e.id===id)||null;});
+const [thread,setThread]=React.useState([]);
+const [history,setHistory]=React.useState(()=>[
+{id:'h1',title:'Etna plume and nearby towns',place:'Etna',date:'12 Sep',thread:[{id:'h1a',q:'Where is the plume going?',view:'detail',eventId:'etna',state:{plume:true,places:true,quakes:false,lava:false,t:1,timeOpen:true},ctx:'Etna · Now',time:'14:02',answer:{title:'Ash is drifting east-southeast',body:'Winds carry the plume toward the Ionian coast. The footprint fades where the forecast is less certain.',ev:'forecast',...(DETAIL_EXTRA['Ash is drifting east-southeast']||{})}}]},
+{id:'h2',title:'Mid-Atlantic Ridge volcanoes',place:'Earth',date:'18 Sep',thread:[{id:'h2a',q:'Show me all volcanoes along the Mid-Atlantic Ridge',view:'world',state:{q:'Show me all volcanoes along the Mid-Atlantic Ridge'},ctx:'Earth · Now',time:'10:40',answer:{title:'Along the Mid-Atlantic Ridge',body:'9 volcanoes lie on or near the ridge. Only Sundhnúkur, on Reykjanes, is currently active.',ev:'retrieved',...(WORLD_EXTRA['Along the Mid-Atlantic Ridge']||{})}}]},
+{id:'h3',title:'Why is Sakurajima explosive?',place:'Sakurajima',date:'22 Sep',thread:[{id:'h3a',q:'Why is Sakurajima explosive?',view:'world',state:{q:'Why is Sakurajima explosive?'},ctx:'Earth · Now',time:'09:12',answer:{title:'Four explosions in 24 hours',body:'Plume heights up to 3.4 km above the crater. Ashfall forecast for Kagoshima city.',ev:'observed',sources:[{n:'Japan Meteorological Agency',k:'observed'}]}}]}
+]);
+const [drawer,setDrawer]=React.useState(false);
+const [ctx,setCtx]=React.useState(['Earth','Now']);
+const [restore,setRestore]=React.useState(null);
+const [currentId,setCurrentId]=React.useState(null);
+const [toast,setToast]=React.useState(null);
+const [dockH,setDockH]=React.useState(56);
+const askRef=React.useRef({ask:()=>{},placeholder:'Ask…',suggestions:[]});const [,force]=React.useState(0);
+const registerAsk=React.useCallback(a=>{const p=askRef.current;askRef.current=a;if(p.placeholder!==a.placeholder||JSON.stringify(p.insets)!==JSON.stringify(a.insets))force(x=>x+1);},[]);
+const open=e=>{localStorage.setItem('noma-open',e.id);setRestore(null);setCurrentId(null);setEv(e);};
+const back=()=>{localStorage.removeItem('noma-open');setRestore(null);setCurrentId(null);setEv(null);};
+const onAnswer=m=>{const id=Date.now()+Math.random();const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+setThread(th=>[...th,{...m,id,time}]);setDrawer(true);setCurrentId(id);};
+const onRestore=m=>{setCurrentId(m.id);const r={...m,nonce:Date.now()};setRestore(r);
+if(m.view==='detail'){const e=E.find(x=>x.id===m.eventId);localStorage.setItem('noma-open',e.id);setEv(e);}else{localStorage.removeItem('noma-open');setEv(null);}};
+const archive=()=>{if(thread.length)setHistory(hs=>[{id:'c'+Date.now(),title:thread[0].q.replace(/\?$/,''),place:ctx[0]||'Earth',date:'Today',thread},...hs]);};
+const newChat=()=>{archive();setThread([]);setCurrentId(null);};
+const loadChat=hc=>{archive();setHistory(hs=>hs.filter(x=>x.id!==hc.id));setThread(hc.thread);setDrawer(true);onRestore(hc.thread[hc.thread.length-1]);};
+const flash=s=>{setToast(s);setTimeout(()=>setToast(null),2800);};
+const common={onAnswer,drawerOpen:drawer&&thread.length>0,registerAsk,onContext:setCtx,dockH};
+const initState=restore&&restore.view==='detail'?restore.state:null;
+return <div style={{position:'absolute',inset:0}}>
+{ev?<DetailView key={ev.id+(initState?restore.nonce:'')} event={ev} onBack={back} initState={initState} {...common}/>:<WorldView onOpen={open} restore={restore} {...common}/>}
+<ChatDock onHeight={setDockH} insets={askRef.current.insets||{left:16,right:16}} thread={thread} ctx={ctx} currentId={currentId} open={drawer} setOpen={setDrawer} onAsk={q=>askRef.current.ask(q)} placeholder={askRef.current.placeholder} suggestions={askRef.current.suggestions} onRestore={onRestore} onNew={newChat} history={history} onLoad={loadChat} onToast={flash}/>
+{toast&&<div style={{position:'absolute',top:20,left:'50%',transform:'translateX(-50%)',zIndex:40}}><AppToast tone="ok">{toast}</AppToast></div>}
+</div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

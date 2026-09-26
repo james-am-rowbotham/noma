@@ -1,0 +1,12 @@
+:root{
+--font-sans:'Geist',system-ui,-apple-system,sans-serif;
+--font-mono:'Geist Mono',ui-monospace,monospace;
+/* scale */
+--text-xs:12px;--text-sm:13px;--text-base:15px;--text-md:17px;--text-lg:21px;--text-xl:28px;--text-display:40px;
+--leading-tight:1.15;--leading-normal:1.5;
+/* instrument label: mono, uppercase, tracked */
+--label-size:11px;--label-tracking:0.08em;
+}
+body{font-family:var(--font-sans);color:var(--text-body);font-size:var(--text-base);line-height:var(--leading-normal)}
+a{color:var(--accent-ink);text-decoration:none}
+a:hover{color:var(--accent);text-decoration:underline}

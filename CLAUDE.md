@@ -44,6 +44,11 @@ Never invent observations, model outputs, measurements, citations or scientific 
 * **Uncertainty is always shown, and always subtly.** Never omitted: a value whose uncertainty was not reported says so, because 3.9 on its own looks exactly as precise as 3.9 ± 0.0. Never louder than the value itself.
 * Prefer contextual actions over mode switching.
 
+The shape these principles now have is specified: `docs/design/explorer.md` for the interface,
+`docs/design/tokens.md` for its visual language, both decided in DESIGN-0003. Where the design and a
+principle above disagree, the disagreement is written down in that record rather than settled by
+whoever builds it first.
+
 The target experience is:
 
 **Look → Ask → Understand → Explore → Ask again**
