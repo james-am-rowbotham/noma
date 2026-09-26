@@ -117,10 +117,15 @@ measurement out of a publication is not inferring it. The proposed reading is th
 OBSERVED with a document as its source, and `retrieved` describes the route — but that is proposed,
 not decided, and it is in the domain model's open list.
 
-## What this design needs that Noma cannot get
+## What can fill this design today
 
-Every visual, against what exists today. The licence facts behind this are in
-[`../research/volcanic-activity.md`](../research/volcanic-activity.md).
+**The design specifies slots, not sources.** A stream row, an overlay, a marker colour — which
+measurement goes into each one will change as sources come and go, and the sample values in the
+prototype are illustrative. So this table is not a list of requirements the design got wrong. It is
+the build order: which slots can be filled with something true right now, and which are still
+waiting on a source.
+
+The licence facts behind it are in [`../research/volcanic-activity.md`](../research/volcanic-activity.md).
 
 | What the design shows | Where it comes from | Today |
 |---|---|---|
@@ -144,10 +149,27 @@ Every visual, against what exists today. The licence facts behind this are in
 | `ask(question, context)` | an NL endpoint | not built |
 | Saved chats per user | accounts | deliberately deferred (domain model, point 16) |
 
-Two of the four sample streams cannot be obtained at all, one is six kilometres from where the
-design implies it is, and the world view's primary visual channel — colour — has no source. None of
-that makes the design wrong. It makes the order of work clear, and it means **every one of those
-rows has to degrade honestly rather than be filled with something that looks right.**
+Read as build order: Etna's detail view has four slots fillable today — earthquakes, ground
+movement, heat, and wind — which is enough for a real screen. The world view's primary visual
+channel is the one with no source at all, and the streams the prototype happens to sample are mostly
+the ones that are published as pictures. **The rule that follows is about slots, not sources: a slot
+with nothing true in it degrades honestly rather than being filled with something that looks right.**
+
+### Two slots the design does not have yet
+
+Both are UX questions rather than data questions, so they stay true whichever measurement arrives.
+
+**Uncertainty has nowhere to go in a stream row.** The row holds a label, a value, a unit, a
+sparkline, an evidence tag and a trend — and no ±. `CLAUDE.md` is unconditional: uncertainty is
+always shown, and a value whose uncertainty was never reported has to be able to say so, because 3.9
+alone looks exactly as precise as 3.9 ± 0.0. Every GNSS reading Noma holds carries one; most
+earthquake depths do not. Both cases need a place to be.
+
+**Nothing says how fresh a reading is.** A daily GNSS position, a satellite pass twice a day and a
+five-minute tremor feed all render as the same smooth line under a green "● Live". Live is the
+strongest claim the interface makes, and it is the one most likely to be wrong: a stale feed looks
+identical to a quiet volcano. A row needs to be able to say when it last changed, and how often it
+is expected to.
 
 ### The live plume is the sharpest case
 

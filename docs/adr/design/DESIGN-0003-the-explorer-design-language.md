@@ -79,7 +79,9 @@ all. Etna's detail view is where Noma actually has data.
 
 ## Evidence
 
-Measured against the four data streams the design's detail view shows, using
+The design specifies slots rather than sources, and which measurement fills a slot will change. What
+follows is evidence about **which slots can be filled truthfully today** — measured against the four
+streams the prototype happens to sample, using
 [`docs/research/volcanic-activity.md`](../../research/volcanic-activity.md):
 
 | Stream in the design | Reality |
@@ -92,6 +94,11 @@ Measured against the four data streams the design's detail view shows, using
 Two of four cannot be obtained at all. The sample value for the one true live stream is two orders of
 magnitude above what was actually measured, which is the difference between a lava flow and a warm
 crater — a caution about sparkline scales drawn from sample data.
+
+Two slots the design does not have, found by asking what a row needs regardless of which measurement
+fills it: somewhere for uncertainty, which `CLAUDE.md` requires unconditionally and which the stream
+row has no room for, and somewhere for freshness, since a daily position, a twice-daily satellite
+pass and a five-minute feed all currently render as one smooth line under "● Live".
 
 Bundle: 3.6 MB total — `assets/imagery/terrain-reference.png` 3.1 MB, `_ds_bundle.js` 320 KB
 (compiled reference, not shipped), everything else under 100 KB.
