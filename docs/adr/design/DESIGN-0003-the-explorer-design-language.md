@@ -5,6 +5,7 @@ type: design
 status: accepted
 date: 2026-09-26
 amends: DESIGN-0001
+amended-by: DESIGN-0004
 ---
 
 # DESIGN-0003: The explorer design language, and Base UI stays underneath it

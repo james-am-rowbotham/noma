@@ -3,8 +3,8 @@ const VENT={x:49,y:28};
 const MONTHS=['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'];
 const tDate=t=>{const d=new Date(2025,9,1);d.setDate(d.getDate()+Math.round(t*359));return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
 const defaults=e=>({wind:{dir:270,speed:22,label:'W 22 kt at 5 km'},weather:{temp:'—',cloud:'—',vis:'—'},places:[],forests:[],
-streams:[{k:'main',label:e.stream.label,unit:e.stream.unit,val:'—',trend:'rising',ev:'observed',base:e.stream.base,amp:e.stream.amp}],
-models:[{name:'Ash dispersion',state:'Ready',detail:'On request'}],history:[{t:0.5,label:'Previous episode',major:true},{t:0.95,label:'Current episode',major:true}]});
+streams:[{k:'main',label:e.stream.label,unit:e.stream.unit,val:(e.stream.base).toFixed(1),trend:'rising',ev:'retrieved',base:e.stream.base,amp:e.stream.amp,span:'7 d',state:'fresh',fresh:'6 h ago · daily summary',lastX:0.96,n:7},{k:'nodef',label:'Ground deformation',empty:'No source for '+e.name+' yet'},{k:'nogas',label:'Gas emissions',empty:'No source for '+e.name+' yet'}],
+models:[{name:'Ash dispersion',state:'Ready',detail:'Global winds · on request'},{name:'Lava flow paths',state:'Not available',detail:'No terrain model for '+e.name}],noCoverage:!(e.places&&e.places.length),history:[{t:0.5,label:'Previous episode',major:true},{t:0.95,label:'Current episode',major:true}]});
 function detailAnswer(q,d){const l=q.toLowerCase();const full=d.places.length>0;
 const st=d.streams.find(s=>l.includes(s.label.toLowerCase()));
 if(st&&/over the last year|history|record/.test(l))return {a:{title:st.label+': 12-month record',body:'The current value is the highest since the December 2025 lava fountain. Drag the timeline to compare episodes.',ev:'historical'},set:{timeOpen:true}};
@@ -21,7 +21,7 @@ if(/before|history|last year|past|changed/.test(l))return {a:{title:'Jumped to t
 return {a:{title:d.headline,body:d.summary,ev:'observed'},set:{}};}
 function DetailView({event,onBack,onAnswer,drawerOpen,registerAsk,initState,onContext,dockH=56}){
 const d={...defaults(event),...event};
-const [o,setO]=React.useState({plume:false,quakes:false,places:true,lava:false,t:1,timeOpen:true,...(initState||{})});
+const [o,setO]=React.useState({plume:false,quakes:false,places:true,lava:false,t:1,timeOpen:false,...(initState||{})});
 const [answer,setAnswer]=React.useState(null);
 const [menu,setMenu]=React.useState(null);
 const openMenu=(e,title,qs)=>{e.stopPropagation();setMenu({x:e.clientX,y:e.clientY,title,qs});};
@@ -41,6 +41,8 @@ const sugg=d.places.length?['Where is the plume going?','Who lives nearby?','Sho
 return <div className="nm-fadein" style={{position:'absolute',inset:0,background:'var(--map-ground)',overflow:'hidden'}}>
 <div style={{position:'absolute',inset:0}}><image-slot id={'terrain-'+event.id} shape="rect" src={event.img||''} placeholder={'Drop a terrain render of '+event.name}></image-slot></div>
 <div style={{position:'absolute',inset:0,pointerEvents:'none',background:'linear-gradient(180deg,rgba(15,19,23,0.4),transparent 16%,transparent 78%,rgba(15,19,23,0.5))'}}></div>
+{d.noCoverage&&<div style={{position:'absolute',inset:0,pointerEvents:'none',background:'repeating-linear-gradient(135deg, rgba(233,237,241,0.10) 0 1px, transparent 1px 9px)'}}></div>}
+{d.noCoverage&&(()=>{const CN=window.NomaDesignSystem_02438c.CoverageNote;return CN?<div style={{position:'absolute',top:16,left:'50%',transform:'translateX(-50%)',zIndex:3,maxWidth:'calc(100% - 32px)',width:'max-content',display:vw>=1300?'block':'none'}}><CN title={'No local observations for '+d.name} detail="Towns, forests and ground data aren't connected yet. Streams below come from global sources."/></div>:null;})()}
 <div style={{position:'absolute',inset:0,pointerEvents:'none'}}>
 {live&&[0,1,2,3,4,5].map(i=><div key={i} className="nm-puff" style={{left:VENT.x+'%',top:VENT.y+'%',animationDelay:(i*1.1)+'s','--wx':(Math.cos(windRot*Math.PI/180)*180)+'px','--wy':(Math.sin(windRot*Math.PI/180)*60-90)+'px'}}></div>)}
 {Array.from({length:14}).map((_,i)=><div key={i} style={{position:'absolute',left:(8+(i%7)*11)+'%',top:(9+Math.floor(i/7)*9)+'%',color:'rgba(233,237,241,0.35)',fontSize:13,transform:`rotate(${windRot}deg)`}}>→</div>)}
@@ -56,16 +58,16 @@ return <div className="nm-fadein" style={{position:'absolute',inset:0,background
 </div>)}
 <div onClick={e=>openMenu(e,'the active vent',d.places.length?['Where is the plume going?','Where would lava flow?','Show me the earthquakes']:['Where is the plume going?',`Why is ${d.streams[0].label.toLowerCase()} rising?`])} style={{position:'absolute',left:VENT.x+'%',top:VENT.y+'%',transform:'translate(-50%,-6px)',padding:'8px 10px',pointerEvents:'auto',cursor:'pointer',...labelStyle,color:'#E9EDF1',textShadow:'0 1px 3px #000'}}>▲ Active vent</div>
 </div>
-<div className="nm-glass nm-glass-surface" style={{position:'absolute',top:16,left:16,display:'flex',alignItems:'center',gap:12,borderRadius:'var(--radius-pill)',padding:'6px 16px 6px 6px',maxWidth:`calc(100% - ${RW+48}px)`,overflow:'hidden',boxSizing:'border-box'}}>
+<div style={{position:'absolute',top:16,left:16,display:'flex',alignItems:'center',gap:8,pointerEvents:'auto',maxWidth:'calc(100% - 92px)',boxSizing:'border-box'}}><Wordmark/><div className="nm-glass nm-glass-surface" style={{minWidth:0,overflow:'hidden',boxSizing:'border-box',display:'flex',alignItems:'center',gap:12,borderRadius:'var(--radius-pill)',padding:'6px 16px 6px 6px'}}>
 <DButton size="sm" variant="secondary" onClick={onBack} style={{borderRadius:999,whiteSpace:'nowrap',flex:'none'}}>← Earth</DButton>
 <span style={{fontWeight:600,fontSize:17,whiteSpace:'nowrap'}}>{d.name}</span>
 <span style={{fontSize:14,color:'var(--text-muted)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{d.region}</span>
-<ThemeToggle/>
-<DBadge tone={live?(d.tone==='neutral'||d.tone==='quiet'?'neutral':d.tone):'neutral'} style={{whiteSpace:'nowrap'}}>{live?d.status:'Historical'}</DBadge>
 </div>
+</div>
+<div style={{position:'absolute',top:16,right:16,zIndex:5}}><SettingsButton/></div>
 <RightColumn d={d} live={live} o={o} set={set} RW={RW} B={vw>=1100?16:dockH+26} openMenu={openMenu}/>
 <AskMenu menu={menu} onAsk={ask} onClose={()=>setMenu(null)}/>
-<div style={{position:'absolute',top:16,right:16,bottom:vw>=1100?16:dockH+26,width:RW,display:'flex',flexDirection:'column',gap:10,overflow:'auto'}}>
+<div style={{position:'absolute',top:72,right:16,bottom:vw>=1100?16:dockH+26,width:RW,display:'flex',flexDirection:'column',gap:10,overflow:'auto'}}>
 <ModelsPanel d={d} o={o} set={set}/>
 <TimePanel o={o} set={set} d={d} live={live}/>
 </div>
@@ -78,25 +80,55 @@ return <DPanel title="Time" meta={live?<span style={{color:'#5FA36F'}}>● Now</
 </DPanel>;
 }
 function ModelsPanel({d,o,set}){
-return <DPanel title="Models & overlays" meta={d.models.filter(m=>m.state==='Running').length+' running'}>
-{d.models.map((m,i)=>{const key=m.name==='Ash dispersion'?'plume':m.name==='Lava flow paths'?'lava':null;
+return <DPanel title="Models & overlays" defaultOpen={false} meta={d.models.filter(m=>m.state==='Running').length+' running'}>
+{d.models.map((m,i)=>{const key=m.name==='Ash dispersion'?'plume':m.name==='Lava flow paths'?'lava':null;const off=m.state==='Not available'||m.state==='Not run';
 return <div key={m.name} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderTop:i?'1px solid var(--line-1)':'none'}}>
-<div style={{flex:1}}><div style={{fontSize:14}}>{m.name}</div><div style={{fontSize:12,color:'var(--text-faint)'}}>{m.state} · {m.detail}</div></div>
-{key&&<Switch checked={o[key]} onChange={e=>set({[key]:e.target.checked})}/>}
+<div style={{flex:1,minWidth:0}}><div style={{fontSize:14,color:off?'var(--text-muted)':'var(--text-body)'}}>{m.name}</div><div style={{fontSize:12,color:m.state==='Not run'?'#D9A02A':'var(--text-faint)'}}>{m.state} · {m.detail}</div></div>
+{key&&<Switch checked={!off&&o[key]} disabled={off} onChange={e=>set({[key]:e.target.checked})}/>}
 </div>;})}
 {d.places.length>0&&<div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderTop:'1px solid var(--line-1)'}}><div style={{flex:1,fontSize:14}}>Towns & forests</div><Switch checked={o.places} onChange={e=>set({places:e.target.checked})}/></div>}
 </DPanel>;
 }
+function streamMeta(ss,live,t){if(!live)return 'At '+tDate(t);const real=ss.filter(s=>!s.empty);const bad=real.filter(s=>s.state!=='fresh');const none=ss.length-real.length;
+const parts=[real.length+' stream'+(real.length===1?'':'s')];if(bad.length)parts.push(bad.length+' '+(bad.every(s=>s.state==='stale')?'stale':'late'));if(none)parts.push(none+' no source');
+return <span style={{color:bad.length?'#D9A02A':'var(--text-muted)'}}>{parts.join(' · ')}</span>;}
+function discrete(s,t){const n=s.n||20,L=s.lastX??1;return Array.from({length:n},(_,i)=>{const k=i+Math.round(t*97);return {x:L-(n-1-i)*(L/(n-1))*0.98,v:s.base+s.amp*(Math.sin(k*0.7)*0.6+Math.sin(k*1.9)*0.3),e:s.e};});}
+function StreamSlot({s,live,t,w,first,onClick}){
+const SR=window.NomaDesignSystem_02438c.StreamRow;
+const series=useLiveSeries(s.base||1,s.amp||1,s.n||48,!live||!s.cont);
+const samples=React.useMemo(()=>s.empty?null:s.cont?null:discrete(s,t),[s,t]);
+const pts=s.cont?series.map((v,i,a)=>({x:i/(a.length-1),v})):samples;
+const fr=live?{state:s.state,text:s.fresh}:{state:'historical',text:'At selected time'};
+if(!SR)return <div onClick={onClick} style={{marginTop:first?2:14,cursor:onClick?'pointer':'default'}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8}}><span style={{fontSize:14,fontWeight:500,color:s.empty?'var(--text-muted)':'var(--text-body)'}}>{s.label}</span><span style={{fontFamily:'var(--font-mono)',fontSize:13,whiteSpace:'nowrap'}}>{s.empty?'—':s.val}{!s.empty&&<span style={{fontSize:11,color:'var(--text-faint)',marginLeft:3}}>±{s.u||'?'}</span>}{!s.empty&&<span style={{fontSize:11,color:'var(--text-faint)',marginLeft:4}}>{s.unit}</span>}</span></div>
+{s.empty?<div style={{marginTop:4,fontSize:12,color:'var(--text-faint)'}}>{s.empty}</div>:<><div style={{marginTop:4}}><Spark base={s.base} amp={s.amp} w={w} h={24} paused={!live||!s.cont} dark/></div><div style={{...labelStyle,color:'var(--text-faint)',marginTop:4,textAlign:'right'}}>{fr.text}</div></>}
+</div>;
+return <SR label={s.label} value={s.val} unit={s.unit} uncertainty={s.u} trend={live?s.trend:undefined} evidence={live?s.ev:'historical'} samples={pts} continuous={s.cont} span={s.span} freshness={fr} empty={s.empty} width={w} onClick={onClick} style={{marginTop:first?2:14}}/>;
+}
+function StatusPanel({d,live,o}){
+const real=d.streams.filter(s=>!s.empty),bad=real.filter(s=>s.state!=='fresh'),none=d.streams.length-real.length;
+const near=d.places.length?[...d.places].sort((a,b)=>parseFloat(a.dist)-parseFloat(b.dist))[0]:null;
+const main=real[0];
+const health=bad.length?bad.map(s=>s.label+' '+s.state).join(', '):none?none+' stream'+(none>1?'s':'')+' not connected':'All streams current';
+const facts=[['Activity',d.activity!=null?d.activity+' / 100':'—','7-day index'],['Trend',main?main.trend[0].toUpperCase()+main.trend.slice(1):'—',main?main.label:''],['Nearest town',near?near.name:'Not mapped',near?near.dist+' '+near.bear:''],['Data',bad.length||none?(bad.length?bad.length+' of '+real.length+' degraded':'Partial'):'Complete',health]];
+const c=toneColor[d.tone]||'var(--text-body)';
+return <DPanel title="Status" meta={live?'Now · 06:41 UTC':'At '+tDate(o.t)}>
+<div style={{display:'flex',alignItems:'center',gap:8}}><span style={{width:9,height:9,borderRadius:'50%',background:live?c:'var(--text-faint)',flex:'none'}}></span><span style={{fontSize:17,fontWeight:600,lineHeight:1.25}}>{live?d.status:'Historical view'}</span></div>
+<div style={{fontSize:14,fontWeight:500,marginTop:6,lineHeight:1.35}}>{d.headline}</div>
+<div style={{fontSize:13,color:'var(--text-muted)',marginTop:4,lineHeight:1.45}}>{d.summary}</div>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 14px',marginTop:12,paddingTop:10,borderTop:'1px solid var(--line-1)'}}>
+{facts.map(([k,v,sub])=><div key={k} style={{minWidth:0}}><div style={{...labelStyle,color:'var(--text-faint)'}}>{k}</div><div style={{fontSize:14,fontWeight:500,marginTop:2,color:k==='Data'&&(bad.length||none)?'#D9A02A':'var(--text-body)'}}>{v}</div><div style={{fontSize:12,color:'var(--text-faint)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={sub}>{sub}</div></div>)}
+</div>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12}}><DEvidence kind={d.places.length?'observed':'retrieved'}/><span style={{...labelStyle,color:'var(--text-faint)'}}>{d.places.length?'Local + global sources':'Global sources only'}</span></div>
+</DPanel>;
+}
 function RightColumn({d,live,o,set,RW,B,openMenu}){
 return <div style={{position:'absolute',top:72,left:16,bottom:B,width:RW,display:'flex',flexDirection:'column',gap:10,overflow:'auto'}}>
-<DPanel title="Data streams" meta={live?<span style={{color:'#5FA36F'}}>● Live</span>:'Paused'}>
-{d.streams.map((s,i)=><div key={s.k} onClick={e=>openMenu(e,s.label.toLowerCase(),[`Why is ${s.label.toLowerCase()} ${s.trend}?`,`Show ${s.label.toLowerCase()} over the last year`])} title="Ask about this" style={{marginTop:i?12:2,cursor:'pointer',borderRadius:6}}>
-<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:14,fontWeight:500,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.label}</span><span style={{fontFamily:'var(--font-mono)',fontSize:13,whiteSpace:'nowrap',flexShrink:0,marginLeft:8}}>{s.val} <span style={{color:'var(--text-faint)',fontSize:11}}>{s.unit}</span></span></div>
-<div style={{marginTop:4}}><Spark base={s.base} amp={s.amp} w={RW-30} h={24} paused={!live} dark/></div>
-<div style={{display:'flex',justifyContent:'space-between',marginTop:4}}><DEvidence kind={live?s.ev:'historical'}/><span style={{...labelStyle,color:'var(--text-faint)'}}>{s.trend}</span></div>
-</div>)}
+<StatusPanel d={d} live={live} o={o}/>
+<DPanel title="Data streams" defaultOpen={false} meta={streamMeta(d.streams,live,o.t)}>
+{d.streams.map((s,i)=><StreamSlot key={s.k} s={s} live={live} t={o.t} w={RW-30} first={i===0} onClick={s.empty?undefined:e=>openMenu(e,s.label.toLowerCase(),[`Why is ${s.label.toLowerCase()} ${s.trend}?`,`Show ${s.label.toLowerCase()} over the last year`])}/>)}
 </DPanel>
-<DPanel title="Local conditions" meta={d.wind.label.split(' at')[0]}>
+<DPanel title="Local conditions" defaultOpen={false} meta={d.wind.label.split(' at')[0]}>
 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 16px'}}>
 {[['Wind',d.wind.label],['Temperature',d.weather.temp],['Cloud',d.weather.cloud],['Visibility',d.weather.vis]].map(([k,v])=><div key={k}><div style={{...labelStyle,color:'var(--text-faint)'}}>{k}</div><div style={{fontFamily:'var(--font-mono)',fontSize:13,marginTop:2}}>{v}</div></div>)}
 </div>

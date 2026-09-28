@@ -55,7 +55,8 @@ return <div style={{position:'absolute',left:insets.left,right:insets.right,bott
 {thread.map(m=><Message key={m.id} m={m} cur={m.id===currentId} onRestore={onRestore}/>)}
 </div>
 </>}
-<div style={{padding:6,borderTop:expanded?'1px solid var(--line-1)':'none'}}><AQueryBar embedded placeholder={placeholder} examples={suggestions} onAsk={q=>{onAsk(q);setOpen(true);}} trailing={<>{reopen}{histBtn}</>}/></div>
+<div style={{padding:6,borderTop:expanded?'1px solid var(--line-1)':'none'}}><AQueryBar embedded leading={<span id="nm-dock-leading" style={{display:'contents'}}></span>} placeholder={placeholder} examples={suggestions} onAsk={q=>{onAsk(q);setOpen(true);}} trailing={<>{reopen}{histBtn}</>}/></div>
+<div id="nm-dock-pop" style={{display:'contents'}}></div>
 {hist&&<div className="nm-glass nm-glass-surface" onPointerDown={e=>e.stopPropagation()} style={{position:'absolute',right:0,bottom:'calc(100% + 8px)',width:320,maxWidth:'100%',borderRadius:'var(--glass-radius)',padding:6,background:'var(--glass-bg-strong)'}}>
 <div style={{display:'flex',alignItems:'center',padding:'4px 10px 6px'}}><span style={{...labelStyle,color:'var(--text-faint)',flex:1}}>Previous chats</span><button style={chatLink} onClick={()=>{onNew();setHist(false);}}>New chat</button></div>
 {n>0&&<div style={{padding:'7px 10px',borderRadius:'var(--radius-2)',background:'var(--glass-hover)'}}><div style={{fontSize:14,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{thread[0].q}</div><div style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text-faint)',marginTop:2}}>Current · {n} question{n>1?'s':''}</div></div>}

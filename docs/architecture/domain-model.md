@@ -421,3 +421,8 @@ question, and the answer is still no.
 - Is a measurement read out of a publication OBSERVED with a document as its source, or does "a
   paper says so" need a class of its own? The design draws it as `retrieved`, which under ADR-0005
   describes the route rather than the kind of claim (DESIGN-0003).
+- **A datastream has to declare how often it is expected to arrive.** The interface computes late and
+  stale from age ÷ expected cadence and the server is forbidden to say "live" (DESIGN-0004), so the
+  cadence is data Noma must hold. It belongs on the datastream, the source, or neither — the readings
+  already held give it by construction, but they cannot say that a feed which has *never* arrived is
+  late. Nothing records it today, and freshness cannot be drawn until something does.

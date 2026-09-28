@@ -429,6 +429,41 @@ return <span style={{position:'relative',display:'inline-block',...style}} onMou
 
 ```
 
+## components/noma/CoverageNote.d.ts
+
+```ts
+/** Names an absence on the map: where Noma has no source, or shows only part of what exists. Pair with the hatch fill over the uncovered area. */
+export interface CoverageNoteProps {
+  /** What is missing, plainly: "No deformation source for Kīlauea". */
+  title: string;
+  /** What IS shown instead, or why: "Showing global M 4.5+ only." */
+  detail?: string;
+  /** Optional recovery, e.g. "Zoom in", "Show global sources". */
+  action?: string;
+  onAction?: () => void;
+  style?: React.CSSProperties;
+}
+export declare function CoverageNote(props: CoverageNoteProps): JSX.Element;
+
+```
+
+## components/noma/CoverageNote.jsx
+
+```jsx
+import React from 'react';
+export function CoverageNote({title,detail,action,onAction,style}){
+return <div className="nm-glass nm-glass-surface" style={{display:'inline-flex',alignItems:'center',gap:10,borderRadius:'var(--glass-radius)',padding:'8px 12px',maxWidth:420,...style}}>
+<span style={{width:16,height:16,flex:'none',borderRadius:3,border:'1px solid var(--line-2)',background:'repeating-linear-gradient(135deg, var(--line-2) 0 1px, transparent 1px 4px)'}}></span>
+<span style={{minWidth:0}}>
+<span style={{display:'block',fontSize:13,fontWeight:500,color:'var(--text-body)'}}>{title}</span>
+{detail&&<span style={{display:'block',fontSize:12,color:'var(--text-muted)',marginTop:1,lineHeight:1.4}}>{detail}</span>}
+</span>
+{action&&<button onClick={onAction} style={{flex:'none',fontFamily:'var(--font-sans)',fontSize:12,color:'var(--text-body)',background:'var(--glass-hover)',border:'1px solid var(--line-1)',borderRadius:999,padding:'3px 10px',cursor:'pointer',whiteSpace:'nowrap'}}>{action}</button>}
+</div>;
+}
+
+```
+
 ## components/noma/EvidenceTag.d.ts
 
 ```ts
@@ -552,6 +587,103 @@ return <div className="nm-glass nm-glass-surface" style={{borderRadius:'var(--gl
 <div style={{display:'flex',alignItems:'center',gap:10}}>
 <button onClick={onRun} disabled={running} style={{flex:1,padding:'8px 0',fontSize:14,fontWeight:500,fontFamily:'var(--font-sans)',color:'#fff',background:'var(--accent)',border:'none',borderRadius:'var(--radius-2)',cursor:'pointer',opacity:running?0.6:1}}>{running?'Running…':'Run simulation'}</button>
 {onAdvanced&&<button onClick={onAdvanced} style={{fontSize:13,fontFamily:'var(--font-sans)',color:'var(--text-muted)',background:'none',border:'none',cursor:'pointer'}}>Advanced</button>}
+</div>
+</div>;
+}
+
+```
+
+## components/noma/StreamRow.d.ts
+
+```ts
+/** A single observation stream: value with uncertainty, sampled history ending at "now", and freshness against its expected cadence.
+ * @startingPoint section="Noma" subtitle="Stream with uncertainty, cadence and degraded states" viewport="700x420"
+ */
+export interface StreamSample {
+  /** Position in the plotted span, 0 = start, 1 = now (right edge). */
+  x: number;
+  v: number;
+  /** Reported ± for this sample. Omit when the source doesn't report one. */
+  e?: number;
+}
+export interface StreamRowProps {
+  label: string;
+  /** Latest value, preformatted. null renders "—". */
+  value?: string | null;
+  unit?: string;
+  /** Reported ± as a preformatted string. Omit / null / 'unreported' renders "±?" — never hide it. */
+  uncertainty?: string | null;
+  trend?: 'rising' | 'falling' | 'steady';
+  evidence?: 'observed' | 'historical' | 'retrieved' | 'calculated' | 'modelled' | 'simulated' | 'inferred' | 'forecast';
+  samples?: StreamSample[];
+  /** true for feeds sampled faster than ~5 min (drawn as a line). false for discrete readings (drawn as dots). */
+  continuous?: boolean;
+  /** Plotted time span label, e.g. "6 h", "30 d". */
+  span?: string;
+  /** Freshness computed from age vs expected cadence: fresh ≤1.5×, late ≤3×, stale >3×. */
+  freshness?: { state: 'fresh' | 'late' | 'stale' | 'historical'; text: string };
+  /** Renders the per-slot empty state with this message instead of data (e.g. "No source for Kīlauea"). */
+  empty?: string;
+  /** Plot width in px. */
+  width?: number;
+  onClick?: (e: any) => void;
+  style?: React.CSSProperties;
+}
+export declare function StreamRow(props: StreamRowProps): JSX.Element;
+
+```
+
+## components/noma/StreamRow.jsx
+
+```jsx
+import React from 'react';
+import { EvidenceTag } from './EvidenceTag.jsx';
+const STATE={fresh:{c:'#5FA36F',fill:true},late:{c:'#D9A02A',fill:false},stale:{c:'var(--text-faint)',fill:false},historical:{c:'var(--text-faint)',fill:true}};
+const TREND={rising:'↗',falling:'↘',steady:'→'};
+const hatch='repeating-linear-gradient(135deg, var(--line-2) 0 1px, transparent 1px 6px)';
+const lab={fontFamily:'var(--font-mono)',fontSize:10,letterSpacing:'0.08em',textTransform:'uppercase'};
+function Plot({samples,continuous,state,w,h}){
+const hasE=samples.some(s=>s.e!=null);
+const lo=Math.min(...samples.map(s=>s.v-(s.e||0))),hi=Math.max(...samples.map(s=>s.v+(s.e||0))),r=hi-lo||1;
+const X=x=>x*w,Y=v=>h-3-(v-lo)/r*(h-6);
+const line=samples.map(s=>X(s.x).toFixed(1)+','+Y(s.v).toFixed(1)).join(' ');
+const band=hasE?samples.map(s=>X(s.x)+','+Y(s.v+(s.e||0))).join(' ')+' '+[...samples].reverse().map(s=>X(s.x)+','+Y(s.v-(s.e||0))).join(' '):null;
+const last=samples[samples.length-1],lx=X(last.x),ly=Y(last.v);const st=STATE[state]||STATE.fresh;
+return <svg width={w} height={h} style={{display:'block',overflow:'visible'}}>
+<line x1="0" x2={w} y1={h-0.5} y2={h-0.5} stroke="var(--line-1)"/>
+<line x1={w-0.5} x2={w-0.5} y1="0" y2={h} stroke="var(--line-2)"/>
+{band&&<polygon points={band} fill="currentColor" opacity="0.14"/>}
+<polyline points={line} fill="none" stroke="currentColor" strokeWidth={continuous?1.25:1} opacity={continuous?1:0.45} strokeLinejoin="round"/>
+{!continuous&&samples.map((s,i)=><circle key={i} cx={X(s.x)} cy={Y(s.v)} r="1.8" fill="currentColor"/>)}
+{w-lx>3&&state!=='historical'&&<line x1={lx} x2={w} y1={ly} y2={ly} stroke="var(--text-faint)" strokeDasharray="2 3"/>}
+<circle cx={lx} cy={ly} r="2.8" fill={st.fill?st.c:'var(--paper-1)'} stroke={st.c} strokeWidth="1.25"/>
+</svg>;
+}
+export function StreamRow({label,value,unit,uncertainty,trend,evidence,samples,continuous,span,freshness,empty,width=300,onClick,style}){
+const f=freshness||{};const st=STATE[f.state]||STATE.fresh;
+if(empty)return <div style={{padding:'2px 0',...style}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:14,fontWeight:500,color:'var(--text-muted)'}}>{label}</span><span style={{fontFamily:'var(--font-mono)',fontSize:13,color:'var(--text-faint)'}}>—</span></div>
+<div style={{marginTop:4,height:24,borderRadius:3,background:hatch,display:'flex',alignItems:'center',padding:'0 8px'}}><span style={{fontSize:12,color:'var(--text-muted)',background:'var(--glass-bg-strong, var(--paper-1))',padding:'1px 6px',borderRadius:3}}>{empty}</span></div>
+</div>;
+const unrep=uncertainty==null||uncertainty==='unreported';
+return <div onClick={onClick} style={{padding:'2px 0',cursor:onClick?'pointer':'default',...style}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8}}>
+<span style={{fontSize:14,fontWeight:500,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</span>
+<span style={{fontFamily:'var(--font-mono)',fontSize:13,whiteSpace:'nowrap',flex:'none',color:f.state==='stale'?'var(--text-muted)':'var(--text-body)'}}>
+{value==null?'—':value}
+<span title={unrep?'Uncertainty not reported by the source':'Reported uncertainty'} style={{fontSize:11,color:'var(--text-faint)',marginLeft:3,borderBottom:unrep?'1px dotted var(--text-faint)':'none'}}>±{unrep?'?':uncertainty}</span>
+<span style={{color:'var(--text-faint)',fontSize:11,marginLeft:4}}>{unit}</span>
+{trend&&<span style={{color:'var(--text-faint)',fontSize:12,marginLeft:4}}>{TREND[trend]||''}</span>}
+</span>
+</div>
+{samples&&samples.length>0&&<div style={{marginTop:5,color:f.state==='stale'?'var(--text-faint)':'var(--text-body)'}}><Plot samples={samples} continuous={continuous} state={f.state} w={width} h={26}/></div>}
+<div style={{display:'flex',alignItems:'center',gap:8,marginTop:5}}>
+{evidence&&<EvidenceTag kind={evidence}/>}
+<span style={{flex:1}}></span>
+<span style={{display:'inline-flex',alignItems:'center',gap:5,...lab,letterSpacing:'0.04em',color:f.state==='fresh'?'var(--text-muted)':st.c}}>
+<span style={{width:6,height:6,borderRadius:'50%',background:st.fill?st.c:'transparent',border:'1.25px solid '+st.c,boxSizing:'border-box'}}></span>
+{f.text}{span&&<span style={{color:'var(--text-faint)'}}>· {span}</span>}
+</span>
 </div>
 </div>;
 }

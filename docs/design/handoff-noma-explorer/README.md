@@ -40,8 +40,9 @@ Four things are always present: **where am I** (the place pill), **what am I loo
 
 | Region | World view | Detail view |
 |---|---|---|
-| Top-left | Place pill: wordmark · "Earth" · "NOW · 06:41 UTC" · theme toggle | Place pill: "← Earth" · name · region · theme toggle · status badge |
-| Top-centre | Filter pill (only when a filter is active) | — |
+| Top-left | **Wordmark → location**, 8px gap: the "noma" wordmark pill · place pill ("Earth" · "NOW · 06:41 UTC") | Wordmark pill · place pill ("← Earth" · name · region; status lives in the Status panel) |
+| Top-right corner | Settings button (44px round glass), top 16 / right 16 | Settings button, same position; right column starts below it at top 72 |
+| Bottom-right corner | Map controls (horizontal) | — |
 | Left column | — (map is full-bleed) | Data streams, Local conditions (top 72, width 340; 300 when vw < 1100) |
 | Right column | — | Models & overlays, then Time (top 16, width 340/300) |
 | On map | Spotlight card anchored to the selected marker | Clickable towns, forests, vent; "Ask about…" menus |
@@ -73,9 +74,26 @@ Radius is `--glass-radius` 12px for panels and 999 for pills.
 | `--glass-text-body` / `-muted` / `-faint` | #EEF1F4 / #BAC3CB / #8D99A4 | #1C1B18 / #4A4843 / #7A766C |
 | `--glass-line-1` / `-2` | rgba(255,255,255,.12) / .24 | rgba(0,0,0,.09) / .18 |
 
+**Wordmark:** a separate glass pill, 44px high, padding 0 16, "noma" 18/600, letter-spacing −0.02em. It is always visible in both views and is never inside the location pill.
+
+**Settings:**
+- A separate 44px round glass button in the top-right corner (top 16 / right 16) of both views. In the detail view the right column starts below it at top 72.
+- It opens a centred glass modal: width 440, `--glass-bg-strong`, backdrop `rgba(8,11,14,.35)`. The × button, Esc or clicking outside closes it.
+- Rows are grouped under instrument-label headings. Each row is a title (14/500) with an optional faint sub-line, and a control on the right:
+  - **Appearance**
+    - Theme: Light / Dark (segmented)
+    - Motion: Full / Reduced. Reduced sets `data-motion="reduced"`, which disables all animations and transitions.
+    - Map labels (Switch): names beside markers in filter views
+  - **Data display**
+    - Time: UTC / Local, for timestamps and the timeline
+    - Units: Metric / Imperial, for distances, heights and wind
+- The segmented control is a pill track in `--glass-hover`; the selected segment is `--ink-1` with `--paper-1` text.
+- Settings apply immediately and persist (`localStorage['noma-settings']`, with theme also in `noma-theme`).
+- In the prototype, Theme, Motion, Map labels and Time (on the world pill) are wired up. Units is stored only.
+
 **Theme:**
 - Set `data-theme="light"` or `"dark"` on `<html>` and persist it (the prototype uses `localStorage['noma-theme']`).
-- The toggle is a 26px round button in the place pill (☀ in dark, ☾ in light).
+- The theme is set from the Settings modal.
 - Overlays drawn on detail terrain imagery stay light-on-dark in both themes because the imagery is dark.
 
 ---
@@ -83,7 +101,7 @@ Radius is `--glass-radius` 12px for panels and 999 for pills.
 ## View 1: World view
 
 ### Map
-- Projection: Natural Earth 1, `fitExtent([[16,72],[vw-24,vh-40]], Sphere)`.
+- Projection: Natural Earth 1, `fitExtent([[8,24],[vw-8,vh-16]], Sphere)`. The globe fills the viewport and all chrome (wordmark, location, settings, featured list, chat) floats over it on glass. The default view reserves no space for panels; filter fits still keep results clear of the featured list and chat.
 - Page `--map-page` (dark #0F1317 / light #DADFE3).
 - Sphere fill `--map-ground`, stroke `--map-line`.
 - Land fill `--map-ground-2`, stroke `--map-land-stroke`, 0.6px.
@@ -98,34 +116,63 @@ Radius is `--glass-radius` 12px for panels and 999 for pills.
 - **Selected marker:** a pulsing ring (r 6→22, fading to 0, 1.8s, repeating). It has no text label, because the spotlight card names it.
 - **Filtered-in labels:** Geist Mono 10.5px uppercase with 0.06em tracking, 10px right of the marker. They are placed greedily so they don't collide (≥90px apart horizontally or ≥16px vertically), with the selected item first and then by activity. The rest stay unlabelled.
 - **Interactions:**
-  - Hovering a marker spotlights it.
-  - Clicking a marker zooms into its detail view.
-  - Clicking empty map clears the filter.
+  - Clicking a marker opens its card; the card's Explore button zooms into the detail view.
+  - Clicking empty map closes the card.
 
-### Spotlight card (replaces any list panel)
-- Glass, width 290, with a 600ms ease-out transition on left/top as it moves between markers.
+### Featured list (inside the chat bar)
+The featured list is part of the chat input on the world view; there is no separate panel.
+- **Trigger:** the input's leading element. It is a 28px pill with a 1px `--line-1` border, followed by a 1px divider before the text field.
+  - Normally: a list glyph, "Featured" (13/500), the count in mono 11, and ▲.
+  - With a filter: "FILTER", then the filter label (ellipsis, pill max-width 200), the count and ▲, plus a 24px round × that clears the filter.
+- **Popover:** clicking the trigger opens a glass popover above the dock, anchored to its left edge. Width 320, `--glass-bg-strong`, max-height min(380, viewport − dock − 110), with the body scrolling.
+  - Header: "FEATURED NOW" or "FILTER · {label}", the count, and "Clear" when filtered.
+  - Rows: an 8px marker in the status colour, the name (14/500; 600 when selected) over the status (12 faint), and the region as a right-aligned instrument label.
+  - Clicking a row switches the system card to that system and closes the popover. Clicking outside or pressing Esc also closes it.
+- **Mounting:** in the prototype the world view portals the trigger and popover into slots the chat dock exposes (`#nm-dock-leading`, `#nm-dock-pop`). In production, pass them as the dock's `leading` and `popover` props per view.
+- The detail view does not show the trigger.
+
+### System card (opens on click)
+- **Opening and closing:**
+  - A card is always shown: the first featured system on load, the first result when a filter is applied. Clicking any marker or list row switches the card to that system; clicking the selected one again keeps it open.
+  - The card's ×, Esc or clicking empty map dismisses it until the next selection. Esc closes the card first, then clears the filter.
+  - Clearing a filter keeps the current card if that system is featured; otherwise it returns to the first featured system.
+- **Hover preview:** hovering a marker (or a row in the featured popover) shows that system's card immediately. Leaving it returns to the selected system's card after 280ms; moving the pointer onto the card keeps the preview open so its buttons can be used. Clicking pins the system as the selection.
+- **Navigation:** clicking a marker **does not** navigate. Navigation happens only through the card's Explore button.
+- **Card:** glass, width 290, padding 16, with a 600ms ease-out transition when it repositions.
 - **Contents, top to bottom:**
-  1. An optional 64px image strip (only when the system has imagery and there's room).
-  2. Header row: 8px status dot, name (16/600, ellipsis), status as an instrument label.
-  3. Headline, 13px muted, line-height 1.4.
-  4. Live sparkline (width−28 × 22), with the label "{STREAM} · LIVE" and the unit.
-  5. Pager row: ‹ / "1 / 5" / › / ❚❚▶ as 24px round buttons, then a dark sm "Explore →" button.
-  6. Two question links, "↳ Why is {name} {status}?" and "↳ Show volcanoes like {name}", 13px muted, turning to body colour on hover.
+  1. An optional 64px image strip.
+  2. The name (17/600, ellipsis) and a 22px round × close button. The region sits on its own line underneath as an instrument label, wrapping rather than truncating.
+  3. Status line (margin-top 8): 8px tone dot + status (14/500).
+  4. Headline (margin-top 6), 13px muted, line-height 1.45.
+  5. **Stats** (margin-top 14, padding-top 12, 1px top divider, height 70): 2 columns, **Activity** "92 / 100" and **Trend**, each an instrument label + evidence dot, a value (15/500) and a sub-line (11, faint).
+  6. **Source line** (margin-top 12): a *retrieved* evidence dot, then "Reported by {source} · 06:41 UTC" (11px faint, wraps).
+  7. **Question links** (margin-top 12, 1px top divider, padding-top 8): "↳ Why is {name} {status}?" and "↳ Show volcanoes like {name}", 13px muted, turning to body colour on hover.
+  8. **Explore** (margin-top 14): a full-width dark sm Button "Explore {name} →".
+- **Evidence dots:** 7px, evidence colour with a 1.5px ring `rgba(255,255,255,.55)`. Status is *retrieved*, Activity is *calculated*, and Trend is *observed* (local stream) or *inferred* (estimated from status). The hover tooltip is portalled to the body (fixed position, #1C1B18 on #F6F4EF) and names the category, e.g. "Calculated — derived by Noma from observations".
 - **Placement:**
-  - Candidate positions: marker right +22, marker left −22−W, and centred; each with top at y−44, above, below, the top bound (72) and the bottom bound.
-  - Score each candidate by how many *other* current-set markers it covers, counting each marker's box as [x−8, x+110] × [y−8, y+8] (the marker plus its label). Break ties by distance to the marker.
-  - Never cover the selected marker itself.
-  - Clamp to the viewport and to above the chat dock (bottom reserve = measured dock height + 24).
-- **Degradation:** when vertical room is short, drop the image first, then the stream.
-- **Leader line:** when the card sits more than 26px from the marker, a 1px dashed line (`2 3`, `rgba(233,237,241,.45)`) runs from the marker to the nearest card edge.
-- **Auto-cycle:** advances every 7000ms through the current set (the featured set, or the filter results). Any manual interaction pauses it.
+  - Candidates are to the right of the marker, to the left of it, and centred on it; each at top y−44, above, below, the top bound or the bottom bound.
+  - The score penalises covering other markers and their labels, then distance.
+  - The card never covers its own marker, and it is clamped above the measured chat dock.
+  - A dashed leader line runs from the marker to the nearest card edge when they're more than 26px apart.
+- **Degradation:** the core is the name, status, headline, source and Explore. Optional sections are added while they fit, in priority order: stats (84), questions (80), image (64). If even the core doesn't fit, the card becomes a 46px pill: dot · name · status · Explore · ×.
+- **Selected marker:** a pulsing ring (r 6→22, fading out, 1.8s).
+- **Filter fit:** uses the full width between 16px insets, above the measured chat dock.
+
+### Map navigation
+- **Scroll or pinch** zooms around the pointer; **drag** pans (cursor grab/grabbing); **double-click** empty map zooms ×2 at the point.
+- The zoom range is 1×–12× over the fitted view. Returning to 1× snaps the pan back to centre.
+- A drag of 4px or more suppresses the click, so panning never closes the card or selects a marker.
+- **Map controls:** a horizontal glass pill (height 44, radius 22) in the bottom-right corner (bottom 16 / right 16). It holds + / − / reset view (a globe icon) as 42×44 buttons with 1px × 20px dividers. − and reset are disabled at 1×. The world chat dock's right inset is 168 so it never meets the controls.
+- Markers, labels and strokes are counter-scaled so they keep their screen size at any zoom. The system card and its leader line track the marker through pan and zoom.
+- The transform eases over 260ms for buttons and double-click, and has no transition while dragging.
+- Applying or clearing a filter resets the user zoom so the filter fit is visible.
+- In production, use the map engine's native navigation (MapLibre NavigationControl or equivalent), styled as above.
 
 ### Queries & the filter view
 Questions asked in the world view produce a **filter view**:
-- A filter pill appears at the top centre: glass pill with "FILTER", the label (14/500), the count, and a 26px round ×.
+- The featured list switches to its filter state and lists the results; see *Featured list*.
 - The map zooms to fit the result set in the free area, with scale clamped between 0.5 and 3.2. The free area is between the left edge and the right edge, below the top chrome and above the measured chat dock. Markers and strokes are counter-scaled so they keep their screen size.
 - Items outside the set fade to 0.12 opacity.
-- The spotlight card cycles through the results.
 - The answer is added to the chat.
 - To clear the filter, press **×**, **Esc**, or click empty map.
 
@@ -170,14 +217,23 @@ Prototype routing:
   - Secondary sm Button "← Earth" (pill-shaped)
   - Name (17/600)
   - Region (14, muted, ellipsis, min-width 0)
-  - ThemeToggle
-  - Badge with the status, or "Historical" when the timeline is in the past
+  - No status badge; status is shown only in the Status panel.
 - Every child except the region is `flex:none`.
 
-### Left column: Data streams, Local conditions
-All are **Panels**: foldable glass, header = mono uppercase title + meta + ▾ chevron.
-- **Data streams.**
-  - Meta "● Live" (#5FA36F), or "Paused".
+### Left column: Status, Data streams, Local conditions
+All are **Panels**: foldable glass, header = mono uppercase title + meta + ▾ chevron. **Only Status is open by default**; every other panel (Data streams, Local conditions, Models & overlays, Time) starts folded, showing just its header and meta summary.
+- **Status** (open).
+  - Meta "Now · 06:41 UTC", or "At {date}".
+  - Main status: 9px tone dot + status (17/600), or "Historical view" in the past.
+  - Headline (14/500) and summary (13 muted).
+  - A 2×2 fact grid below a 1px divider, each an instrument label over a value (14/500) and a faint sub-line:
+    - **Activity:** "92 / 100 · 7-day index"
+    - **Trend:** the main stream's trend
+    - **Nearest town:** name, then distance and bearing; "Not mapped" when there's no local data
+    - **Data:** "Complete", "{n} of {m} degraded" or "Partial" in amber, with the degraded streams named, e.g. "SO₂ flux stale"
+  - Footer: EvidenceTag and "Local + global sources" or "Global sources only".
+- **Data streams** (see *Thin data* above for the row spec).
+  - Meta is a state summary ("4 streams · 1 stale"), or "At {date}" in the past.
   - Each row:
     - Label (14/500, ellipsis) with the value in mono 13 (nowrap, no shrink) and the unit in 11 faint.
     - A live sparkline, width RW−30 × 24.
@@ -227,6 +283,52 @@ On viewports narrower than 1100px, both columns end at the measured chat-dock he
 Systems without local data answer "Not available yet for {name}" to place, earthquake, lava and history questions.
 
 ---
+
+## Thin data: uncertainty, freshness, absence
+Principle: the interface must tell the truth when data is thin. A broken feed must never look like a quiet volcano, and an empty map must never look like "nothing here".
+
+### Uncertainty on every value
+- **Where it goes:** directly after the value, in the same mono run: `3.2 ±0.4 cm ↗`. The ± is 11px faint.
+- **Reported:** show `±{value}`, and draw an uncertainty band (fill `currentColor` at 0.14 opacity) around the sampled line.
+- **Not reported:** show `±?` with a 1px dotted underline, tooltip "Uncertainty not reported by the source", and no band. **Never omit the slot.** A bare 3.9 reads as 3.9 ± 0.0.
+- **Examples:** GNSS uplift carries ±. Most earthquake depths show `4.1 km ±?`.
+- **Data contract:** every observation value carries `uncertainty: number | null`. `null` means "not reported" and is different from 0.
+
+### Freshness against expected cadence
+- **The plot's right edge is now.** It has a 1px `--line-2` tick. Samples sit at their true times, so if the last reading is older than the latest possible, a **dashed tail** (`2 3`, faint) runs from it to the now edge. A stopped feed is visible at a glance.
+- **Cadence sets the drawing.** `continuous` (≤5-min feeds) is a 1.25px line and may animate. Discrete feeds (daily GNSS, twice-daily satellite passes, bulletins) are 1.8px dots joined by a 0.45-opacity line and **do not animate**.
+- **State,** computed from age ÷ expected cadence:
+
+| State | Rule | Dot | Row |
+|---|---|---|---|
+| fresh | ≤ 1.5× | filled #5FA36F | "{age} ago · {cadence}" (e.g. "9 h ago · daily") |
+| late | ≤ 3× | hollow #D9A02A | "{age} ago · expected {cadence}" in amber |
+| stale | > 3× | hollow faint | "No update for {age} · expected {cadence}"; value and plot muted |
+| historical | timeline in the past | filled faint | "At selected time" |
+
+- **"Live"** is only used for fresh continuous feeds ("Live · every 1 min").
+- **Panel header:** summarises instead of claiming live, e.g. "4 streams · 1 stale · 2 no source". It turns amber when any stream is late or stale.
+- **Span label:** each row states the span it plots ("6 h", "24 h", "7 d", "30 d").
+- **Data contract:** every stream provides `expectedCadence`, `lastObservedAt`, and its samples with timestamps. The client computes the state; the server must never mark a stream "live".
+
+### Per-slot absence
+| Slot | Treatment |
+|---|---|
+| Stream with no source here | Label (muted), value "—", a 24px hatched strip (`repeating-linear-gradient(135deg, var(--line-2) 0 1px, transparent 1px 6px)`) with the reason, e.g. "No source for Kīlauea yet". Not clickable. |
+| Stream with no recent data | **Stale**, not empty. Keep the last reading visible with its age. |
+| Value without reported uncertainty | `±?` |
+| Model not run | State in amber: "Not run · Last run 3 d ago · needs SO₂ feed". Switch disabled. |
+| Model not available here | State faint: "Not available · No terrain model for {name}". Switch disabled. |
+| Map area with no source | A diagonal hatch over the uncovered area (detail: `rgba(233,237,241,.10)` 1px lines, 9px pitch), plus a **CoverageNote** naming what's missing and what is shown instead: "No local observations for Kīlauea. Towns, forests and ground data aren't connected yet. Streams below come from global sources." |
+| Query the zoom can't fully serve | A CoverageNote, **never an error bar**. It says what is shown and why: "Showing M 4.5+ worldwide. Smaller earthquakes appear only where a local network reports them." The optional action is "Zoom in". |
+
+In production, coverage should be a per-source polygon, so hatching is exact geography, not a whole-view wash.
+
+**Components:**
+- **StreamRow** (`label, value, unit, uncertainty, trend, evidence, samples[{x,v,e?}], continuous, span, freshness{state,text}, empty, width`)
+- **CoverageNote** (`title, detail, action, onAction`)
+
+A reference card showing every state is at `guidelines/data-honesty.html` in the design-system project.
 
 ## Chat dock (shared by both views)
 - **Position:** bottom 16, centred between the view's insets (world: 16/16; detail: RW+32 on each side, or 16/16 when vw < 1100). Max-width 620.

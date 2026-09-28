@@ -25,10 +25,15 @@ different rules.
 |---|---|---|---|---|
 | **Investigation** | which system, which filter, which overlays, what time | yes | yes | yes |
 | **Conversation** | the thread, and per answer the investigation state that produced it | yes | yes | appends only |
-| **Layout** | dock height, viewport size, which panel is folded, whether the spotlight is auto-cycling, the open ask-menu, the theme | no | no | no |
+| **Preferences** | theme, reduced motion, marker labels, UTC or local, metric or imperial | on this device | **no** | arguably — "show that in feet" is a fair request |
+| **Layout** | dock height, viewport size, which panels are folded, the open ask-menu, how far the user has zoomed by hand | no | no | no |
 
 Layout state changes constantly and means nothing to anyone else. Putting it in the same object as
 the investigation is how a shared link ends up carrying somebody's window size.
+
+Preferences are the pair that is easy to get wrong in the other direction: they persist, so they look
+like state worth saving, and they must still never travel in a link. A shared investigation that
+forces imperial units on whoever opens it is describing the sender, not the volcano.
 
 ## The investigation
 
@@ -64,6 +69,10 @@ time          jump to a moment or back to now   "what did this look like in Dece
 The camera is **not** in the state. It is derived: the view fits to whatever the state says is being
 looked at. That is deliberate — "fly me to Etna" stays expressible, a shared link reopens the same
 view, and dragging the map does not write state sixty times a second.
+
+The map still pans and zooms by hand, and that is layout: a new answer resets it, because the point
+of an answer is to frame its own result. The rule worth keeping is that **the camera is a consequence
+of the question, never a component of it.**
 
 ## Open
 

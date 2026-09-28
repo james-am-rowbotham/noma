@@ -17,9 +17,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--map-page)}#root{
 @keyframes nmSlide{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}.nm-slidein{animation:nmSlide 260ms var(--ease-out)}
 @keyframes nmUnfold{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}.nm-unfold{animation:nmUnfold 240ms var(--ease-out)}
 .nm-chips{scrollbar-width:none}.nm-chips::-webkit-scrollbar{display:none}
+html[data-motion="reduced"] *{animation:none!important;transition:none!important}
 .nm-puff{position:absolute;width:70px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(210,208,202,0.75),rgba(180,176,168,0.3) 60%,transparent);filter:blur(6px);animation:nmPuff 6.6s linear infinite;opacity:0}
 </style>
 </head><body><div id="root"></div>
+<script>try{const s=JSON.parse(localStorage.getItem('noma-settings')||'{}');if(s.motion)document.documentElement.dataset.motion=s.motion;}catch(e){}</script>
 <script type="text/babel" src="streams.jsx"></script>
 <script type="text/babel" src="chat.jsx"></script>
 <script type="text/babel" src="world-view.jsx"></script>

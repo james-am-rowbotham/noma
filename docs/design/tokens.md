@@ -73,6 +73,12 @@ One trap worth the line: the entrance keyframes animate `transform`, so they mus
 element centred with `translateX(-50%)`. The animation overrides the centring and the element jumps
 to the left.
 
+**Reduced motion** is `data-motion="reduced"` on `<html>`, set from Settings, and it disables every
+animation and transition rather than shortening them. It is a switch in the interface and not only a
+reading of `prefers-reduced-motion`, because the person who needs it is not always on the machine
+that declares it. One thing it must not disable: the dashed tail that says a feed has stopped, and
+anything else whose job is to state a fact rather than to move.
+
 ## Fonts
 
 Geist and Geist Mono, loaded from Google Fonts. They are **substitutes** — no brand fonts exist, and

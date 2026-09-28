@@ -52,6 +52,7 @@ index below matching disk.
 | [DESIGN-0001](design/DESIGN-0001-base-ui-and-our-own-tokens.md) | Base UI for behaviour, and the look is ours | accepted |
 | [DESIGN-0002](design/DESIGN-0002-the-map-and-where-its-tiles-come-from.md) | MapLibre with self-cut Protomaps tiles, and terrain that is scenery rather than data | accepted |
 | [DESIGN-0003](design/DESIGN-0003-the-explorer-design-language.md) | The explorer design language, and Base UI stays underneath it | accepted |
+| [DESIGN-0004](design/DESIGN-0004-the-interface-when-data-is-thin.md) | The interface when data is thin | accepted |
 
 ## Timeline
 
@@ -65,5 +66,6 @@ index below matching disk.
 | 2026-09-22 | [ADR-0005](architecture/0005-one-question-per-provenance-class.md) | A provenance class answers one question — what kind of claim is this? |
 | 2026-09-23 | [DESIGN-0002](design/DESIGN-0002-the-map-and-where-its-tiles-come-from.md) | MapLibre with self-cut Protomaps tiles, and terrain that is scenery rather than data |
 | 2026-09-26 | [DESIGN-0003](design/DESIGN-0003-the-explorer-design-language.md) | The explorer design language, and Base UI stays underneath it |
+| 2026-09-28 | [DESIGN-0004](design/DESIGN-0004-the-interface-when-data-is-thin.md) | The interface when data is thin |
 
 <!-- index:end -->
