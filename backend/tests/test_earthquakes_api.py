@@ -69,6 +69,8 @@ class TestWhatItReturns:
         assert len(coordinates) == 2, "a third coordinate would mean the opposite of the depth"
 
     def test_depth_is_a_property_with_its_direction_stated(self, client: TestClient):
+        # EXP-1: the uncertainty slot is present even when the agency reported none. Of 147
+        # INGV origins only 64 state one, so this is the common case, not the edge case.
         depth = get(client)["features"][0]["properties"]["depthMetres"]
         assert depth == {"value": 1210.0, "uncertainty": None, "positive": "down"}
 
@@ -160,6 +162,8 @@ class TestSayingWhoWasAsked:
         assert get(client)["noma"]["asked"] == ["ingv", "usgs"]
 
     def test_an_empty_result_still_says_who_was_asked(self, client: TestClient):
+        # EXP-8: "nobody to ask" and "asked, and there were none" are different facts, and only
+        # one of them says anything about the ground.
         body = get(client, minMagnitude="9")
         assert body["features"] == []
         assert body["noma"]["asked"], "an empty map must not look like an empty planet"

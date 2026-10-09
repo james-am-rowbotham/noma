@@ -86,8 +86,8 @@ class TestTheStationsInView:
         assert all(m["procedure"] and m["referenceFrame"] for m in measures)
 
     def test_each_stream_carries_the_two_facts_freshness_needs(self, client: TestClient):
-        # And NO verdict: Noma never says "live", because whether this is late depends on when it
-        # is read (DESIGN-0004). Seconds with the unit in the name, as `depthMetres` does it.
+        # EXP-3. And NO verdict: Noma never says "live", because whether this is late depends
+        # on when it is read (DESIGN-0004). Seconds with the unit in the name, as `depthMetres`.
         measures = get(client, "/stations", bbox=BBOX)["features"][0]["properties"]["measures"]
         for m in measures:
             assert m["expectedCadenceSeconds"] == 86_400  # one day, measured not assumed

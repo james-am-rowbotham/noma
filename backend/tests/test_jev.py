@@ -157,7 +157,8 @@ class TestTheGate:
         assert [f.label for f in built(late).facts] == [late.label]
 
     def test_a_reading_with_no_stated_rhythm_can_never_be_stale(self):
-        # Honest consequence of not knowing: nothing can be late against a rhythm nobody published.
+        # EXP-5. Honest consequence of not knowing: nothing can be late against a rhythm nobody
+        # published.
         # It is let through SAYING so, rather than dropped on a technicality.
         ancient = Reading(
             label="Eruption bulletin",

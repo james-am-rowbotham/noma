@@ -200,6 +200,29 @@ against real sources rather than samples. Its own statement of the principle:
 Exact sizes, thresholds and copy are in the bundle. What matters here is the three rules, and they
 are decided in [DESIGN-0004](../adr/design/DESIGN-0004-the-interface-when-data-is-thin.md).
 
+The claims a test can hold are numbered below. `(unbuilt)` means agreed and not yet enforced, and
+`scripts/specIntegrity.test.ts` keeps that honest — an unbuilt rule is a declared state, not a
+silent gap.
+
+**EXP-1** Every value carries an uncertainty slot. The slot is never omitted, and `null` in it
+means "the source reported none", which is different from zero.
+
+**EXP-2** An unreported uncertainty is drawn as `±?`, never as a bare number. *(unbuilt)*
+
+**EXP-3** The server sends `expectedCadence` and `lastObservedAt` and never a freshness verdict.
+
+**EXP-4** The reader computes fresh, late or stale from age divided by expected cadence.
+*(unbuilt)*
+
+**EXP-5** A stream with no stated cadence is never called late.
+
+**EXP-6** A discrete feed is drawn as points, not joined into a line. *(unbuilt)*
+
+**EXP-7** A query the current view cannot fully serve returns a coverage note, never an error.
+*(unbuilt)*
+
+**EXP-8** An area no source covers is distinguishable from an area where nothing was found.
+
 **Uncertainty sits in the value, and its slot is never empty.** `3.2 ±0.4 cm`, in the same run of
 mono, the ± quieter than the number. Where a source reported no uncertainty, the slot reads `±?`
 under a dotted underline, and says so on hover. There is no third option: a bare `3.9` claims a
