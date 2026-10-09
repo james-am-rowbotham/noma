@@ -15,6 +15,7 @@ dependencies = [
     "pydantic>=2.13",
     "pydantic-settings>=2.15.0",
     "sqlalchemy>=2.0.54",
+    "typesafe-sdk>=0.7.2",
     "uvicorn>=0.53.0",
 ]
 
