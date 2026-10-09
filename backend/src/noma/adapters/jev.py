@@ -27,8 +27,10 @@ never to Noma (CLAUDE.md, and ADR-0005 on FORECAST).
 """
 
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
+from pydantic import AwareDatetime
 from typesafe_sdk import Score, TypeSafeClient
 from typesafe_sdk import TypeSafeError as SdkError
 
@@ -54,6 +56,18 @@ MODEL = "jev-latest"
 
 TIMEOUT = 30.0
 
+#: A reading older than this multiple of its own expected cadence is too old to judge. The same
+#: number the interface uses for "stale" (DESIGN-0004), deliberately: a monitor calling something
+#: stale while the screen calls it fine would be two answers to one question.
+#:
+#: ONLY the stale threshold lives here, not "late" as well. A reading that is merely late is still
+#: a reading and Jev can judge it; one that is stale is a reading about a feed that has stopped.
+#:
+#: The browser holds its own copy of this number, which is one fact in two homes. Serving the
+#: thresholds from the API would fix that and is not worth an endpoint yet — written down here so
+#: the next person changing 3.0 knows to change both.
+STALE_AFTER = 3.0
+
 
 class JevError(RuntimeError):
     """Jev could not be asked, or could not be understood. Never a verdict — a monitor that cannot
@@ -76,6 +90,32 @@ class Fact(Model):
     uncertainty: str | None = None
     #: How old the reading is, in words — "6 hours ago". Never a timestamp: Jev reads dates as text.
     measured: str | None = None
+
+
+class Reading(Model):
+    """What the detection layer produces: a measurement with its real time and rhythm attached.
+
+    This is the INPUT side, and it is machine-readable on purpose — `evidence_from` is the only
+    place that turns a reading into words, so the freshness arithmetic happens in code exactly once
+    and Jev is never handed a date to reason about.
+    """
+
+    label: str
+    value: float
+    #: UCUM where the source gives one. Travels with the value because a number without its unit
+    #: is not a measurement.
+    unit: str
+    #: None means the source reported none, which is said out loud rather than omitted: a bare
+    #: value claims a precision nobody stated (CLAUDE.md, DESIGN-0004).
+    uncertainty: float | None = None
+    #: When the measurement was made. Used ONLY by the gate; never sent to Jev as a date.
+    observed_at: AwareDatetime
+    #: How often the next one is expected. None means no stated rhythm, so this reading can never
+    #: be called stale — the honest consequence of not knowing (domain model, point 25).
+    expected_cadence: timedelta | None = None
+    #: What the value is being compared against, in words. Supplied by the caller because the
+    #: comparison is the detection layer's job, not this module's.
+    baseline: str | None = None
 
 
 class Evidence(Model):
@@ -118,6 +158,69 @@ class Judgement(Model):
     because: str | None = None
 
 
+def evidence_from(
+    readings: Sequence[Reading],
+    *,
+    system: str,
+    previous: str | None = None,
+    now: datetime | None = None,
+) -> Evidence:
+    """Turn readings into the words Jev sees — and drop the ones too old to mean anything.
+
+    THE GATE. A reading older than `STALE_AFTER` times its own cadence is not judged, it is NAMED:
+    it moves from `facts` into `missing`, so the judgement is made in the knowledge that this
+    measurement is unavailable rather than on a number that stopped being true days ago.
+
+    Found by running the real thing: a 112-hour-old thermal reading was handed to Jev as though it
+    were current, from a feed that carries a rolling 24 hours. Jev has no way to notice — it reads
+    what it is given, literally — so noticing has to happen here.
+
+    A reading with no stated cadence passes, and says so. That is not a loophole: nothing can be
+    called late against a rhythm that was never published, and silently dropping it would be a
+    judgement dressed as a technicality.
+    """
+    at = now or datetime.now(tz=UTC)
+    facts: list[Fact] = []
+    missing: list[str] = []
+
+    for r in readings:
+        age = at - r.observed_at
+        if r.expected_cadence and age > r.expected_cadence * STALE_AFTER:
+            missing.append(
+                f"{r.label} — no reading for {_in_words(age)}, expected every "
+                f"{_in_words(r.expected_cadence)}"
+            )
+            continue
+        facts.append(
+            Fact(
+                label=r.label,
+                value=f"{r.value:g} {r.unit}",
+                baseline=r.baseline,
+                # Never omitted, even to a model: "not reported" and "±0" are different claims.
+                uncertainty=(
+                    f"±{r.uncertainty:g} {r.unit}"
+                    if r.uncertainty is not None
+                    else "not reported by the source"
+                ),
+                measured=f"{_in_words(age)} ago"
+                + ("" if r.expected_cadence else ", on no stated schedule"),
+            )
+        )
+
+    return Evidence(system=system, facts=facts, missing=missing, previous=previous)
+
+
+def _in_words(d: timedelta) -> str:
+    """A duration a reader — human or Jev — does not have to do arithmetic on. Coarse on purpose:
+    "5 days" is the useful fact, and "5 days, 3:42:11" invites someone to compute with it."""
+    seconds = int(abs(d.total_seconds()))
+    for size, name in ((86_400, "day"), (3_600, "hour"), (60, "minute")):
+        if seconds >= size:
+            n = seconds // size
+            return f"{n} {name}{'s' if n != 1 else ''}"
+    return "less than a minute"
+
+
 def ask(evidence: Evidence, *, model: str = MODEL, timeout: float = TIMEOUT) -> Judgement:
     """Ask Jev where these measurements sit, from steady to escalating.
 
@@ -132,11 +235,13 @@ def ask(evidence: Evidence, *, model: str = MODEL, timeout: float = TIMEOUT) -> 
     if not evidence.facts:
         # The gate. Not an optimisation: handed no measurements Jev would still answer, and the
         # answer would be indistinguishable from one made on real data.
-        return Judgement(
-            verdict=NOT_CHECKED,
-            decided_by="noma",
-            because=f"no usable measurements for {evidence.system}",
-        )
+        # `missing` is carried into the reason: "no usable measurements" on its own invites the
+        # reader to think there is nothing to measure, when what happened is that everything
+        # measurable had gone stale.
+        why = f"no usable measurements for {evidence.system}"
+        if evidence.missing:
+            why += f" — {'; '.join(evidence.missing)}"
+        return Judgement(verdict=NOT_CHECKED, decided_by="noma", because=why)
 
     key = settings().jev_api_key
     if key is None:
