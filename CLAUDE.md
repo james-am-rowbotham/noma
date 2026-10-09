@@ -220,6 +220,15 @@ Apply this test in order and stop at the first match. Every fact has one home.
 
 A status snapshot ("X is currently broken") is none of these. It is an issue.
 
+## Review and commits
+
+**The code is reviewed locally before anything is committed or pushed.** Finish the block, run
+`bun run check`, write the summary — then stop. Leave the working tree as it is, so the diff is
+still there to read and still open to being sent back.
+
+The summary is what gets read, and it is only worth trusting while the code behind it can still be
+rejected. A commit made before review turns a question into a fact.
+
 ## Component architecture
 
 Use a mature accessible React component library for common primitives where appropriate.
