@@ -25,7 +25,8 @@ from noma.api.earthquakes import connection
 from noma.domain.thermal import ThermalDetection
 from noma.ingest import ETNA_BBOX, NASA_FIRMS, ingest_thermal
 from noma.store.quakes import load_sources
-from noma.store.thermal import detections_within, last_asked
+from noma.store.sources import last_received
+from noma.store.thermal import detections_within
 
 router = APIRouter(tags=["thermal"])
 
@@ -64,7 +65,12 @@ def thermal(
     if end <= start:
         raise HTTPException(422, "the window ends before it starts")
 
-    asked = last_asked(conn, NASA_FIRMS)
+    # `last_received`, not `last_asked`: FIRMS has no event service, and its file always comes back
+    # with a body, so the newest document IS the last successful fetch. One consequence worth
+    # knowing: a FETCH THAT FAILED stores nothing, so the next request retries immediately rather
+    # than waiting out LIVE_MAX_AGE. Deliberate — a feed Noma could not reach should be retried,
+    # not left to go quietly stale — but it means an outage at NASA is asked about every request.
+    asked = last_received(conn, NASA_FIRMS)
     covered = _intersects((west, south, east, north), ETNA_BBOX)
     fetched = False
     if covered and (asked is None or now - asked > LIVE_MAX_AGE):

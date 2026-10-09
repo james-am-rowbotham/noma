@@ -20,7 +20,7 @@ from sqlalchemy import Connection, Engine, text
 from noma.adapters.firms import FirmsError, parse_firms
 from noma.domain.quake import Envelope, SourceId
 from noma.domain.thermal import ThermalDetection
-from noma.store.thermal import detections_within, last_asked, save_detections
+from noma.store.thermal import detections_within, save_detections
 from tests.conftest import FIRMS
 
 RAW = FIRMS.read_bytes()
@@ -211,13 +211,6 @@ class TestStoring:
         looked = datetime(2026, 9, 24, 1, 9, tzinfo=UTC)
         assert near_summit(conn, radius_m=15_000, start=looked + timedelta(minutes=1)) == []
         assert len(near_summit(conn, radius_m=15_000, end=looked)) == 5
-
-    def test_it_knows_when_noma_last_asked(self, conn: Connection):
-        # Read from the stored document, because the document IS the record of the fetch. The
-        # endpoint uses this to decide whether to ask NASA again.
-        asked = last_asked(conn, "nasa_firms")
-        assert asked is not None and asked.tzinfo is not None
-        assert last_asked(conn, "usgs") is None
 
 
 def near_summit(

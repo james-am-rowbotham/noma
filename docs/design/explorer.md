@@ -180,7 +180,8 @@ The licence facts behind it are in [`../research/volcanic-activity.md`](../resea
 | `ask(question, context)` | an NL endpoint | not built |
 | Saved chats per user | accounts | deliberately deferred (domain model, point 16) |
 | **Uncertainty on every value** | the record | **served already.** `uncertainty: null` travels on every magnitude and depth, distinct from zero |
-| **Expected cadence, and when a stream last updated** | the datastream | **not served.** Nothing in Noma states how often a stream should arrive, so freshness cannot be computed yet — the smallest piece of backend work the design asks for |
+| **Expected cadence, and when a stream last updated** | the datastream | **served** for ground movement: `expectedCadenceSeconds` and `lastObservedAt` on every stream, and no verdict (domain model, point 25). Thermal has no measured cadence yet — one overpass is held, because the feed is a rolling 24 hours |
+| **Whether Noma is still asking at all** | `event_fetch` | **served** as a separate question from "when did a document arrive", because an agency answering 204 gives nothing to store while Noma asks diligently |
 
 Read as build order: Etna's detail view has four slots fillable today — earthquakes, ground
 movement, heat, and wind — which is enough for a real screen. The world view's primary visual

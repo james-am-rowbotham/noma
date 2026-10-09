@@ -10,7 +10,7 @@ what exists. Ingesting a station is a deliberate act (`noma.ingest.ingest_statio
 there is a station catalogue to read.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
@@ -20,7 +20,12 @@ from sqlalchemy import Connection
 from noma.api.earthquakes import connection
 from noma.domain.series import Datastream, Observation, Station
 from noma.store.quakes import load_sources
-from noma.store.series import datastreams_of, observations_of, stations_within
+from noma.store.series import (
+    datastreams_of,
+    last_observed,
+    observations_of,
+    stations_within,
+)
 
 router = APIRouter(tags=["stations"])
 
@@ -54,7 +59,10 @@ def stations(
     contributing = sorted({s.envelope.source_id for s in inside})
     return {
         "type": "FeatureCollection",
-        "features": [_feature(s, datastreams_of(conn, s.public_id)) for s in inside],
+        "features": [
+            _feature(s, datastreams_of(conn, s.public_id), last_observed(conn, s.public_id))
+            for s in inside
+        ],
         "attribution": [
             {"source": s.id, "name": s.name, "licence": s.licence}
             for s in load_sources(conn, contributing)
@@ -93,10 +101,13 @@ def series(
         raise HTTPException(422, "the window ends before it starts")
 
     readings = observations_of(conn, stream.public_id, start=start, end=end)
+    # Read separately from the window on purpose: asking for last March must not make a healthy
+    # stream look dead because the newest reading in THAT window is a year old.
+    last = last_observed(conn, public_id).get(stream.public_id)
     contributing = sorted({stream.envelope.source_id})
     return {
         "station": public_id,
-        "datastream": _datastream(stream),
+        "datastream": _datastream(stream, last),
         "observations": [_observation(o) for o in readings],
         "attribution": [
             {"source": s.id, "name": s.name, "licence": s.licence}
@@ -118,7 +129,9 @@ def _bbox(raw: str) -> tuple[float, float, float, float]:
     return west, south, east, north
 
 
-def _feature(station: Station, streams: Sequence[Datastream]) -> dict[str, Any]:
+def _feature(
+    station: Station, streams: Sequence[Datastream], last: Mapping[str, datetime]
+) -> dict[str, Any]:
     return {
         "type": "Feature",
         "id": station.public_id,
@@ -131,12 +144,12 @@ def _feature(station: Station, streams: Sequence[Datastream]) -> dict[str, Any]:
             "elevationMetres": station.elevation_m,
             "source": station.envelope.source_id,
             "provenance": station.envelope.provenance,
-            "measures": [_datastream(d) for d in streams],
+            "measures": [_datastream(d, last.get(d.public_id)) for d in streams],
         },
     }
 
 
-def _datastream(d: Datastream) -> dict[str, Any]:
+def _datastream(d: Datastream, last: datetime | None = None) -> dict[str, Any]:
     return {
         "id": d.public_id,
         "observedProperty": d.observed_property,
@@ -144,6 +157,20 @@ def _datastream(d: Datastream) -> dict[str, Any]:
         # Without these two a number of metres is not a measurement of anything.
         "procedure": d.procedure,
         "referenceFrame": d.reference_frame,
+        # THE TWO FACTS FRESHNESS IS COMPUTED FROM, and no verdict (DESIGN-0004). Whether this
+        # stream is late depends on when it is read, which only the reader knows — so Noma never
+        # sends "live" and the client does the division.
+        #
+        # Seconds, with the unit in the NAME, exactly as `depthMetres` does it: the client divides
+        # an age by this, and the browser has no way to parse an ISO 8601 duration without help.
+        # Null means no stated rhythm, which is a real answer — a stream without one can never be
+        # called late.
+        "expectedCadenceSeconds": d.expected_cadence.total_seconds()
+        if d.expected_cadence
+        else None,
+        # Null here means this stream has NEVER produced a reading, which is not the same as having
+        # stopped: the first says Noma has never seen it work.
+        "lastObservedAt": last.isoformat() if last else None,
     }
 
 

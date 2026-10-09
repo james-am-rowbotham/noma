@@ -299,6 +299,31 @@ rolling 24 hours, so looking cannot recover what was not collected. For a source
 window, "fetch because someone looked" gives history only from the day Noma started looking — the
 first case where a standing watch is the only way to have the past, rather than a nicety.
 
+**25. Freshness is two questions, and only one of them is a cadence.** (2026-10-09) A datastream
+declares how often a reading is expected; Noma records when it last managed to ask. They are not
+the same question and they do not have the same answer.
+
+* **Sampled things** — a GNSS position, a satellite pass — arrive on a rhythm, so *late* means the
+  next one did not turn up. The rhythm is a column on the datastream, declared rather than derived:
+  readings already held give a rhythm by construction, but they cannot say that a feed which has
+  **never** arrived is late. NULL is a real answer and means no stated rhythm; a stream without one
+  can never be called late, which is the same discipline as an unreported uncertainty.
+* **Things that happen** — earthquakes — have no rhythm. A week with no earthquakes is a quiet week.
+  The only honest freshness is *when Noma last managed to ask*, which `event_fetch` already records
+  for every ask including the empty ones.
+
+The distinction is not academic: an agency answering HTTP 204 gives Noma nothing to store, so
+"when did a document last arrive" stands still while Noma is asking diligently. Reading freshness
+from the documents alone recreates the Kīlauea failure of point 21 with a clock attached.
+
+**Noma never sends a verdict.** Whether a stream is late depends on when someone reads it, which
+only the reader knows, so the two facts travel and the reader divides (DESIGN-0004).
+
+Measured on the 6,401-epoch ESLN series before the cadence was declared: the median gap between
+consecutive readings is **exactly 1 day** across 6,400 gaps, and **362 gaps are longer**, the
+largest 135 days. A cadence is therefore an expectation and never a promise, and whatever decides
+"late" has to tolerate a missed reading.
+
 ## Proposed, not yet agreed
 
 **5. "Compliant" means a test passes.** A claim of compliance that nothing checks rots exactly the
@@ -421,8 +446,3 @@ question, and the answer is still no.
 - Is a measurement read out of a publication OBSERVED with a document as its source, or does "a
   paper says so" need a class of its own? The design draws it as `retrieved`, which under ADR-0005
   describes the route rather than the kind of claim (DESIGN-0003).
-- **A datastream has to declare how often it is expected to arrive.** The interface computes late and
-  stale from age ÷ expected cadence and the server is forbidden to say "live" (DESIGN-0004), so the
-  cadence is data Noma must hold. It belongs on the datastream, the source, or neither — the readings
-  already held give it by construction, but they cannot say that a feed which has *never* arrived is
-  late. Nothing records it today, and freshness cannot be drawn until something does.

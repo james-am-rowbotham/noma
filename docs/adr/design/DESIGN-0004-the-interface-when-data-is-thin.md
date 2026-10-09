@@ -5,6 +5,7 @@ type: design
 status: accepted
 date: 2026-09-28
 amends: DESIGN-0003
+pinned-by: backend/tests/test_sources.py, backend/tests/test_stations_api.py
 ---
 
 # DESIGN-0004: The interface when data is thin

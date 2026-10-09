@@ -85,6 +85,15 @@ class TestTheStationsInView:
         # Without these two, a number of metres is not a measurement of anything.
         assert all(m["procedure"] and m["referenceFrame"] for m in measures)
 
+    def test_each_stream_carries_the_two_facts_freshness_needs(self, client: TestClient):
+        # And NO verdict: Noma never says "live", because whether this is late depends on when it
+        # is read (DESIGN-0004). Seconds with the unit in the name, as `depthMetres` does it.
+        measures = get(client, "/stations", bbox=BBOX)["features"][0]["properties"]["measures"]
+        for m in measures:
+            assert m["expectedCadenceSeconds"] == 86_400  # one day, measured not assumed
+            assert m["lastObservedAt"]
+            assert "live" not in m and "fresh" not in m and "stale" not in m
+
     def test_a_box_somewhere_else_is_empty_rather_than_wrong(self, client: TestClient):
         assert get(client, "/stations", bbox="-155.40,19.25,-155.15,19.50")["features"] == []
 
@@ -105,6 +114,20 @@ class TestOneStationOverTime:
         # Metres of eastward motion over twenty years. Most of it is the plate carrying Sicily,
         # not Etna deforming — a caveat for whatever draws this, not for the number.
         assert round(readings[-1]["value"], 5) == 0.37985
+
+    def test_a_window_in_the_past_does_not_make_a_live_stream_look_dead(self, client: TestClient):
+        # The newest reading INSIDE a 2005 window is twenty years old; the stream itself is not.
+        # Reading the two from the same query would turn every historical look into a dead feed.
+        old = get(
+            client,
+            "/stations/ESLN/series",
+            property="displacement_east",
+            start="2005-01-01T00:00:00Z",
+            end="2005-12-31T00:00:00Z",
+        )
+        latest = get(client, "/stations/ESLN/series", property="displacement_east", **WINDOW)
+        assert old["observations"][-1]["time"] < latest["observations"][-1]["time"]
+        assert old["datastream"]["lastObservedAt"] == latest["datastream"]["lastObservedAt"]
 
     def test_it_attributes_ingv(self, client: TestClient):
         # CC BY 4.0: attribution is a licence condition, not a courtesy.

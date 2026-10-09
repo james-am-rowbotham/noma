@@ -8,6 +8,8 @@ Names follow the same rule as the QuakeML types: snake_case in Python, and the s
 the API, OpenAPI, and so the browser's generated types — uses the standard's own spelling.
 """
 
+from datetime import timedelta
+
 from pydantic import AwareDatetime
 
 from noma.domain.quake import Envelope, Metres, Model
@@ -41,6 +43,18 @@ class Datastream(Model):
     #: What a displacement is measured against. Without it a number of metres measures nothing:
     #: "moved 38 cm east" is meaningless until you say east relative to what.
     reference_frame: str | None = None
+    #: How often a reading is expected. Not a promise and not a measurement of this stream: it is
+    #: what the agency publishes on, and a reader compares it against `last_observed` to decide
+    #: whether a feed has stopped (DESIGN-0004).
+    #:
+    #: None means NO STATED RHYTHM, and it is a real answer rather than missing data — a campaign
+    #: survey has none, and a stream without one can never be called late. Same discipline as an
+    #: unreported uncertainty: the slot exists so "unknown" can be said out loud.
+    #:
+    #: Noma does NOT send a freshness verdict. Whether this stream is late depends on when someone
+    #: looks, which only the reader knows, so the reader is given the two facts and does the
+    #: arithmetic. See DESIGN-0004.
+    expected_cadence: timedelta | None = None
 
 
 class Observation(Model):

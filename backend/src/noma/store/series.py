@@ -63,10 +63,14 @@ def _save_datastream(connection: Connection, stream: Datastream, station_id: UUI
         text("""
             INSERT INTO datastream (station_id, provenance, source_id, retrieved_at,
                                     raw_document_id, public_id, observed_property, unit,
-                                    procedure, reference_frame)
+                                    procedure, reference_frame, expected_cadence)
             VALUES (:station_id, :provenance, :source_id, :retrieved_at, :raw_document_id,
-                    :public_id, :observed_property, :unit, :procedure, :reference_frame)
-            ON CONFLICT (source_id, public_id) DO UPDATE SET unit = EXCLUDED.unit
+                    :public_id, :observed_property, :unit, :procedure, :reference_frame,
+                    :expected_cadence)
+            ON CONFLICT (source_id, public_id) DO UPDATE SET unit = EXCLUDED.unit,
+                -- Re-ingesting updates the rhythm: an agency moving from daily to hourly is news,
+                -- and a stale cadence would make a healthy feed look late forever.
+                expected_cadence = EXCLUDED.expected_cadence
             RETURNING id
         """),
         {
@@ -76,6 +80,7 @@ def _save_datastream(connection: Connection, stream: Datastream, station_id: UUI
             "observed_property": stream.observed_property,
             "unit": stream.unit,
             "procedure": stream.procedure,
+            "expected_cadence": stream.expected_cadence,
             "reference_frame": stream.reference_frame,
         },
     ).one()
@@ -164,6 +169,31 @@ def datastreams_of(connection: Connection, station_public_id: str) -> Sequence[D
     return [_read_datastream(r) for r in rows]
 
 
+def last_observed(connection: Connection, station_public_id: str) -> Mapping[str, datetime]:
+    """When each of a station's streams last produced a reading, keyed by datastream.
+
+    Separate from `datastreams_of` because this is a fact about the OBSERVATIONS, not a column on
+    the datastream — storing it on the stream would mean a value that is wrong the moment the next
+    reading lands.
+
+    A stream absent from the result has never produced a reading at all, which is a different state
+    from "has not produced one lately" and must stay distinguishable: the first means Noma has
+    never seen this stream work, the second means it stopped.
+    """
+    rows = connection.execute(
+        text("""
+            SELECT d.public_id, max(o.phenomenon_time) AS last
+            FROM datastream d
+              JOIN station s ON s.id = d.station_id
+              JOIN observation o ON o.datastream_id = d.id
+            WHERE s.public_id = :station_public_id
+            GROUP BY d.public_id
+        """),
+        {"station_public_id": station_public_id},
+    ).all()
+    return {r.public_id: r.last for r in rows}
+
+
 def observations_of(
     connection: Connection,
     datastream_public_id: str,
@@ -226,6 +256,7 @@ def _read_datastream(r: RowMapping) -> Datastream:
         unit=r["unit"],
         procedure=r["procedure"],
         reference_frame=r["reference_frame"],
+        expected_cadence=r["expected_cadence"],
     )
 
 

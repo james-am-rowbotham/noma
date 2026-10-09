@@ -17,7 +17,7 @@ Three things this module is careful about:
 
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from noma.domain.quake import Envelope, Metres
 from noma.domain.series import Datastream, Observation, Station
@@ -81,6 +81,12 @@ def parse_pos(document: bytes, envelope: Envelope) -> ParsedSeries:
             unit="m",  # UCUM
             procedure=procedure,
             reference_frame=frame,
+            # One position per day, which is what this network publishes on. MEASURED on the
+            # 6,401-epoch ESLN series before it was declared: the median gap between consecutive
+            # readings is exactly 1 day across 6,400 gaps — but 362 gaps are LONGER, up to 135
+            # days. So this is what to expect, never a guarantee, and whatever decides "late" from
+            # it has to tolerate a missed day (DESIGN-0004).
+            expected_cadence=timedelta(days=1),
         )
         for prop, _, _ in COMPONENTS
     ]

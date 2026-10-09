@@ -66,15 +66,6 @@ def _content_hash(d: ThermalDetection) -> bytes:
     return hashlib.sha256(d.model_dump_json(exclude={"envelope"}).encode()).digest()
 
 
-def last_asked(connection: Connection, source_id: str) -> datetime | None:
-    """When Noma last fetched anything from this source. Read from `raw_document` rather than from
-    a table of its own: the document IS the record of the fetch."""
-    return connection.execute(
-        text("SELECT max(retrieved_at) FROM raw_document WHERE source_id = :source_id"),
-        {"source_id": source_id},
-    ).scalar_one_or_none()
-
-
 def detections_within(
     connection: Connection,
     *,

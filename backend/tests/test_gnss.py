@@ -10,14 +10,22 @@ uncertainty.
 """
 
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 
 import pytest
 from sqlalchemy import Connection, Engine, text
 
 from noma.adapters.gnss_pos import ParsedSeries, PosFileError, parse_pos
 from noma.domain.quake import Envelope, SourceId
-from noma.store.series import datastreams_of, observations_of, save_series, stations_within
+from noma.store.series import (
+    datastreams_of,
+    last_observed,
+    observations_of,
+    save_series,
+    stations_within,
+)
 from tests.conftest import ESLN
 
 RAW = ESLN.read_bytes()
@@ -56,6 +64,19 @@ class TestReadingTheFile:
     def test_a_displacement_carries_the_frame_it_is_measured_against(self):
         # Without it, "moved 38 cm east" measures nothing: east relative to what?
         assert parse().datastreams[0].reference_frame == "IGS20/WGS84"
+
+    def test_a_datastream_says_how_often_to_expect_a_reading(self):
+        # One of the two facts freshness is computed from (DESIGN-0004). MEASURED before it was
+        # declared: across 6,400 gaps in the full ESLN series the median is exactly one day.
+        assert {d.expected_cadence for d in parse().datastreams} == {timedelta(days=1)}
+
+    def test_the_cadence_is_an_expectation_and_the_data_proves_it(self):
+        # 362 of those 6,400 gaps are longer than a day, the largest 135 days. So anything deciding
+        # "late" from the cadence has to tolerate a missed reading, and this fixture carries a gap
+        # wide enough to say so.
+        times = sorted(o.phenomenon_time for o in parse().observations)
+        gaps = [b - a for a, b in pairwise(times)]
+        assert max(gaps) > timedelta(days=1)
 
     def test_it_records_how_the_numbers_were_produced(self):
         # The observation standard's `procedure`. For a processed product it is the only honest
@@ -129,6 +150,39 @@ class TestStoring:
             self.envelope = ENVELOPE.model_copy(update={"raw": str(document)})
             yield connection
             transaction.rollback()
+
+    def test_the_cadence_survives_the_round_trip(self, conn: Connection):
+        save_series(conn, parse(envelope=self.envelope))
+        assert {d.expected_cadence for d in datastreams_of(conn, "ESLN")} == {timedelta(days=1)}
+
+    def test_a_changed_cadence_replaces_the_old_one(self, conn: Connection):
+        # An agency moving from daily to hourly is news. Left at its old value, the cadence would
+        # make a healthy faster feed look permanently late — the failure is silent, because nothing
+        # about a wrong cadence looks wrong.
+        save_series(conn, parse(envelope=self.envelope))
+        faster = parse(envelope=self.envelope)
+        save_series(
+            conn,
+            replace(
+                faster,
+                datastreams=[
+                    d.model_copy(update={"expected_cadence": timedelta(hours=1)})
+                    for d in faster.datastreams
+                ],
+            ),
+        )
+        assert {d.expected_cadence for d in datastreams_of(conn, "ESLN")} == {timedelta(hours=1)}
+
+    def test_when_each_stream_last_produced_a_reading(self, conn: Connection):
+        # The other half of freshness. A stream missing from this mapping has NEVER produced a
+        # reading, which is a different state from having stopped.
+        save_series(conn, parse(envelope=self.envelope))
+        last = last_observed(conn, "ESLN")
+        assert set(last) == {f"ESLN:displacement_{c}" for c in ("north", "east", "up")}
+        assert all(t.tzinfo is not None for t in last.values())
+        assert last["ESLN:displacement_east"] == max(
+            o.phenomenon_time for o in parse().observations
+        )
 
     def test_a_series_survives_the_round_trip(self, conn: Connection):
         stored = parse(envelope=self.envelope)

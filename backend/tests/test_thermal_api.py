@@ -50,7 +50,7 @@ def client_over(db: Engine, *, asked_recently: bool) -> Iterator[TestClient]:
         with db.connect() as conn:
             transaction = conn.begin()
             if asked_recently:
-                # A fetch Noma made a moment ago. `last_asked` reads the stored document, so
+                # A fetch Noma made a moment ago. `last_received` reads the stored document, so
                 # this is what a recent fetch actually looks like.
                 conn.execute(
                     text("""
