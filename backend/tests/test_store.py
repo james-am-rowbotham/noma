@@ -160,6 +160,8 @@ class TestRevisions:
         assert rows == 2, "the earlier version must survive the revision"
 
     def test_reading_gives_the_newest_version(self, conn: Connection):
+        # DET-5 lives here as much as in the detector: this is what makes a count of what the store
+        # returns a count of earthquakes rather than of versions.
         first = self.ingest_at(conn, XML, RETRIEVED_AT)
         self.ingest_at(conn, self.revised(), RETRIEVED_AT + timedelta(hours=1))
 

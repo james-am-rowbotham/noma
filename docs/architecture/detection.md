@@ -21,38 +21,40 @@ was arithmetic with a label that did not match it.
 
 ## Rules
 
-Each one is a claim a test can assert. `(unbuilt)` means the rule is agreed and nothing enforces it
-yet — `scripts/specIntegrity.test.ts` holds that distinction, so an unbuilt rule is a declared state
-rather than a quiet gap.
+Each one is a claim a test asserts, in `backend/tests/test_detect.py`.
+`scripts/specIntegrity.test.ts` checks that every rule here has one, so a rule that stops being
+enforced cannot sit in this list looking settled. `(unbuilt)` is how a rule agreed but not yet built
+declares itself; nothing here carries it any more.
 
 **DET-1** A fact's label names the arithmetic that produced it. If the same label would be true of
 two different computations, the label is wrong: "eastward movement" is not a fact, "eastward
-movement over the last 30 days" is. *(unbuilt)*
+movement over the last 30 days" is.
 
-**DET-2** Every fact states the window it was computed over. A count without a window is not a
-count — "0 earthquakes" says nothing until it says since when. *(unbuilt)*
+**DET-2** Every fact computed over a period states that period. A count without a window is not a
+count — "0 earthquakes" says nothing until it says since when. An instantaneous measurement, such
+as a single satellite pass, has no period to state and says so by having none.
 
 **DET-3** A fact carries a baseline, or it is not evidence of change. A value alone cannot support
-"changing": changing against what? *(unbuilt)*
+"changing": changing against what?
 
 **DET-4** A baseline states how much history it was computed from. A "weekly median" derived from
 one day of data is not a weekly median, and the one thermal overpass Noma holds is exactly that
-case. *(unbuilt)*
+case.
 
 **DET-5** A count counts distinct things, never rows. Every table here keeps every version of every
-record (domain-model point 19), so `count(*)` counts revisions as events. *(unbuilt)*
+record (domain-model point 19), so `count(*)` counts revisions as events.
 
 **DET-6** A change smaller than its own uncertainty is not a change. Every GNSS reading carries a
-standard deviation of about 1.5 mm; a 1 mm "movement" is noise wearing a number. *(unbuilt)*
+standard deviation of about 1.5 mm; a 1 mm "movement" is noise wearing a number.
 
 **DET-7** A fact is produced only from records that are held and fresh, and absence is never zero.
-"No earthquakes" from a source Noma has not asked is not a measurement of the ground. *(unbuilt)*
+"No earthquakes" from a source Noma has not asked is not a measurement of the ground.
 
 **DET-8** A fact names the records it came from, so a verdict can be re-derived from the same
-inputs. A judgement whose inputs were not kept is a rumour. *(unbuilt)*
+inputs. A judgement whose inputs were not kept is a rumour.
 
 **DET-9** A derived fact is CALCULATED and Noma is its source (ADR-0005). Noma can be wrong, and the
-record has to say whose arithmetic it was. *(unbuilt)*
+record has to say whose arithmetic it was.
 
 ## What this is not
 

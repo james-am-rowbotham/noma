@@ -27,13 +27,13 @@ never to Noma (CLAUDE.md, and ADR-0005 on FORECAST).
 """
 
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import AwareDatetime
 from typesafe_sdk import Score, TypeSafeClient
 from typesafe_sdk import TypeSafeError as SdkError
 
+from noma.domain.detection import Reading, in_words
 from noma.domain.quake import Model
 from noma.settings import settings
 
@@ -90,32 +90,6 @@ class Fact(Model):
     uncertainty: str | None = None
     #: How old the reading is, in words — "6 hours ago". Never a timestamp: Jev reads dates as text.
     measured: str | None = None
-
-
-class Reading(Model):
-    """What the detection layer produces: a measurement with its real time and rhythm attached.
-
-    This is the INPUT side, and it is machine-readable on purpose — `evidence_from` is the only
-    place that turns a reading into words, so the freshness arithmetic happens in code exactly once
-    and Jev is never handed a date to reason about.
-    """
-
-    label: str
-    value: float
-    #: UCUM where the source gives one. Travels with the value because a number without its unit
-    #: is not a measurement.
-    unit: str
-    #: None means the source reported none, which is said out loud rather than omitted: a bare
-    #: value claims a precision nobody stated (CLAUDE.md, DESIGN-0004).
-    uncertainty: float | None = None
-    #: When the measurement was made. Used ONLY by the gate; never sent to Jev as a date.
-    observed_at: AwareDatetime
-    #: How often the next one is expected. None means no stated rhythm, so this reading can never
-    #: be called stale — the honest consequence of not knowing (domain model, point 25).
-    expected_cadence: timedelta | None = None
-    #: What the value is being compared against, in words. Supplied by the caller because the
-    #: comparison is the detection layer's job, not this module's.
-    baseline: str | None = None
 
 
 class Evidence(Model):
@@ -187,13 +161,13 @@ def evidence_from(
         age = at - r.observed_at
         if r.expected_cadence and age > r.expected_cadence * STALE_AFTER:
             missing.append(
-                f"{r.label} — no reading for {_in_words(age)}, expected every "
-                f"{_in_words(r.expected_cadence)}"
+                f"{r.label} — no reading for {in_words(age)}, expected every "
+                f"{in_words(r.expected_cadence)}"
             )
             continue
         facts.append(
             Fact(
-                label=r.label,
+                label=r.label + (f", {r.window}" if r.window else ""),
                 value=f"{r.value:g} {r.unit}",
                 baseline=r.baseline,
                 # Never omitted, even to a model: "not reported" and "±0" are different claims.
@@ -202,23 +176,12 @@ def evidence_from(
                     if r.uncertainty is not None
                     else "not reported by the source"
                 ),
-                measured=f"{_in_words(age)} ago"
+                measured=f"{in_words(age)} ago"
                 + ("" if r.expected_cadence else ", on no stated schedule"),
             )
         )
 
     return Evidence(system=system, facts=facts, missing=missing, previous=previous)
-
-
-def _in_words(d: timedelta) -> str:
-    """A duration a reader — human or Jev — does not have to do arithmetic on. Coarse on purpose:
-    "5 days" is the useful fact, and "5 days, 3:42:11" invites someone to compute with it."""
-    seconds = int(abs(d.total_seconds()))
-    for size, name in ((86_400, "day"), (3_600, "hour"), (60, "minute")):
-        if seconds >= size:
-            n = seconds // size
-            return f"{n} {name}{'s' if n != 1 else ''}"
-    return "less than a minute"
 
 
 def ask(evidence: Evidence, *, model: str = MODEL, timeout: float = TIMEOUT) -> Judgement:
